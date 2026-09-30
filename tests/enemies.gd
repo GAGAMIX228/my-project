@@ -22,7 +22,7 @@ func _ready() -> void:
 		Game.difficulty = level
 		var e := Enemy.new()
 		e.setup("grunt")
-		check(is_equal_approx(e.max_hp, 82.0), "здоровье орка-воина 82 на сложности %s" % level)
+		check(is_equal_approx(e.max_hp, 57.0), "здоровье орка-воина 57 на сложности %s" % level)
 		e.free()
 	Game.difficulty = "novice"
 	check(Game.group_count(10) == 8 and Game.group_count(1) == 1, "Новичок: врагов меньше (10 → 8), вождь один")

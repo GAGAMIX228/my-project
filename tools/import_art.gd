@@ -41,16 +41,17 @@ func _swords_pawn(color: String) -> Array:
 
 func _initialize() -> void:
 	_write("style.json", '{"pixel_art": true}')
-	# враги: Tiny RPG Orc для орков (размер и оттенок делают разных), Tiny Swords для остальных
+	# враги: все орки из Tiny RPG (размер и оттенок делают разных, роль показывают детали поверх, см. EnemyArt.sprite_effects).
+	# Людей из Tiny Swords врагами не ставим: они похожи на героев игрока.
 	_unit("enemies/grunt", RPG, ORC, 1.6)
 	_unit("enemies/raider", RPG, ORC, 1.4, 13, [0.85, 0.95, 1.1])
-	_unit("enemies/shield", SWORDS, _swords_warrior("Black"), 0.42)
+	_unit("enemies/shield", RPG, ORC, 1.7, 9, [0.78, 0.82, 0.95])
 	_unit("enemies/berserk", RPG, ORC, 1.7, 12, [1.15, 0.8, 0.75])
-	_unit("enemies/shaman", SWORDS, _swords_monk("Red"), 0.42)
-	_unit("enemies/warlock", SWORDS, _swords_monk("Black"), 0.42)
-	_unit("enemies/archer", SWORDS, _swords_archer("Red"), 0.42)
+	_unit("enemies/shaman", RPG, ORC, 1.5, 9, [0.8, 1.0, 0.85])
+	_unit("enemies/warlock", RPG, ORC, 1.5, 9, [0.85, 0.75, 1.1])
+	_unit("enemies/archer", RPG, ORC, 1.45, 9, [1.0, 1.0, 0.8])
 	_unit("enemies/brute", RPG, ORC, 2.4, 8, [0.8, 0.95, 0.8])
-	_unit("enemies/banner", SWORDS, _swords_pawn("Red"), 0.42)
+	_unit("enemies/banner", RPG, ORC, 1.6, 9, [1.1, 0.9, 0.85])
 	_unit("enemies/troll", RPG, ORC, 2.5, 8, [0.75, 0.85, 1.05])
 	_unit("enemies/chief", RPG, ORC, 3.3, 8, [0.85, 0.95, 0.85])
 	# герои (драконов пока нет, они рисуются кодом)
@@ -101,6 +102,11 @@ func _unit(dir: String, root: String, sheets: Array, scale_value: float, fps := 
 				box = used if first else box.merge(used)
 				first = false
 		frames[spec[0]] = list
+	var old := DirAccess.open(ProjectSettings.globalize_path(OUT + dir))
+	if old != null:
+		for file in old.get_files():
+			if file.ends_with(".png") or file.ends_with(".import"):
+				old.remove(file)
 	var cx := box.position.x + box.size.x / 2
 	var half := maxi(cx - box.position.x, box.end.x - cx)
 	var crop := Rect2i(cx - half, box.position.y, half * 2, box.size.y)

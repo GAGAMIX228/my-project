@@ -51,7 +51,8 @@ static func draw(ci: CanvasItem, type: String, r: float, f: float, ph: float, wh
 
 ## Эффекты вокруг настоящего спрайта (assets/art): круг знаменосца, ярость, искры ускорения, «плюсики» лечения.
 ## top: высота над землёй, где заканчивается голова спрайта (в локальных координатах врага, отрицательная).
-static func sprite_effects(ci: CanvasItem, r: float, feet: Vector2, top: float, ph: float, enraged: bool, buffed: bool, healing: bool, aura: float) -> void:
+static func sprite_effects(ci: CanvasItem, type: String, r: float, f: float, feet: Vector2, top: float, ph: float, enraged: bool, buffed: bool, healing: bool, aura: float) -> void:
+	_accessory(ci, type, f, feet, absf(feet.y - top), ph)
 	if aura > 0.0:
 		Art.ellipse_outline(ci, feet, aura, aura * 0.42, Color(1.0, 0.85, 0.3, 0.28), 2.0)
 	if enraged:
@@ -67,6 +68,44 @@ static func sprite_effects(ci: CanvasItem, r: float, feet: Vector2, top: float, 
 			var c := Color(0.4, 1.0, 0.5, 1.0 - t)
 			ci.draw_line(p + Vector2(-3, 0), p + Vector2(3, 0), c, 2.0)
 			ci.draw_line(p + Vector2(0, -3), p + Vector2(0, 3), c, 2.0)
+
+
+## Детали, по которым видно роль орка (у всех один и тот же пиксельный орк): щит, лук, знамя, посох, парящие шары.
+## feet: точка под ногами, h: высота спрайта.
+static func _accessory(ci: CanvasItem, type: String, f: float, feet: Vector2, h: float, ph: float) -> void:
+	var mid := feet + Vector2(0, -h * 0.45)
+	match type:
+		"shield":
+			var c := mid + Vector2(f * 9.0, 1.0)
+			Art.outlined_circle(ci, c, 8.0, STEEL_DARK, 1.5)
+			ci.draw_arc(c, 5.5, 0.0, TAU, 14, STEEL, 1.6, true)
+			Art.outlined_circle(ci, c, 2.4, Color("c9a23a"), 1.0)
+		"archer":
+			var turn := 0.0 if f > 0.0 else PI
+			var bc := mid + Vector2(f * 6.0, 0)
+			ci.draw_arc(bc, 11.0, -1.2 + turn, 1.2 + turn, 12, Art.OUTLINE, 3.6, true)
+			ci.draw_arc(bc, 11.0, -1.2 + turn, 1.2 + turn, 12, Color("6b4a2a"), 1.8, true)
+			ci.draw_line(bc + Vector2(f * cos(1.2) * 11.0, -sin(1.2) * 11.0), bc + Vector2(f * cos(1.2) * 11.0, sin(1.2) * 11.0), Color("e8dfc0"), 1.0)
+		"banner":
+			var base := feet + Vector2(-f * 8.0, 2.0)
+			var top := base + Vector2(0, -h - 18.0)
+			Art.outlined_line(ci, base, top, WOOD, 2.2, 1.0)
+			var wave := sin(ph * 5.0) * 2.0
+			Art.outlined_poly(ci, [top + Vector2(0, 1), top + Vector2(-f * 15.0, 3 + wave), top + Vector2(-f * 13.0, 10 - wave), top + Vector2(-f * 15.0, 17 + wave), top + Vector2(0, 16)], Color("b8342a"), 1.2)
+			ci.draw_circle(top + Vector2(-f * 8.0, 9.0 + wave * 0.5), 2.6, Color("f2ecd2"))
+		"shaman":
+			var base := feet + Vector2(f * 10.0, 2.0)
+			var top := base + Vector2(0, -h - 6.0)
+			Art.outlined_line(ci, base, top, WOOD, 2.0, 1.0)
+			var glow := 0.6 + 0.3 * sin(ph * 5.0)
+			ci.draw_circle(top, 6.0, Color(0.4, 1.0, 0.7, 0.3 * glow))
+			Art.outlined_circle(ci, top, 3.0, Color("6ff0b0"), 1.0)
+		"warlock":
+			for i in 3:
+				var a := ph * 3.0 + i * 2.09
+				var p := mid + Vector2(cos(a) * 15.0, -h * 0.25 + sin(a) * 6.0)
+				ci.draw_circle(p, 4.0, Color(0.75, 0.5, 1.0, 0.35))
+				ci.draw_circle(p, 2.4, Color("c48bff"))
 
 
 # ---------- общее тело орка ----------

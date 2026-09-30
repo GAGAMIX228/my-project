@@ -303,7 +303,7 @@ func _draw() -> void:
 	if _sprite != null:
 		Art.blob_shadow(self, Vector2(0, r * 0.85), r * 1.15)
 		top = _sprite.position.y - float(_sprite.get_meta("height")) - 2.0
-		EnemyArt.sprite_effects(self, r, Vector2(0, r * 0.85 + lift), top, phase, enraged, buffed, healing, aura)
+		EnemyArt.sprite_effects(self, type, r, face, Vector2(0, r * 0.85 + lift), top, phase, enraged, buffed, healing, aura)
 	else:
 		EnemyArt.draw(self, type, r, face, phase, flash > 0.0, enraged, buffed, healing, aura)
 	# головы находятся примерно на 1.55·r над центром врага

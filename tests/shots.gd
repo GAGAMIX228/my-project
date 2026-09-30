@@ -44,33 +44,34 @@ func _ready() -> void:
 	add_child(main)
 
 
-## Все типы врагов в двух рядах, для проверки рисунка.
+## Все типы врагов в двух рядах: настоящие Enemy (как в бою), у каждого своя короткая дорога и скорость 0.
 class EnemyGallery extends Node2D:
 	func _ready() -> void:
 		var types: Array = Defs.ENEMIES.keys()
 		for i in types.size():
-			var sprite := EnemySprite.new()
-			sprite.type = types[i]
-			sprite.position = Vector2(85 + (i % 6) * 158, 150 + (i / 6) * 220)
-			add_child(sprite)
+			var road := Path2D.new()
+			road.curve = Curve2D.new()
+			road.curve.add_point(Vector2.ZERO)
+			road.curve.add_point(Vector2(3000, 0))
+			road.position = Vector2(85 + (i % 6) * 158, 150 + (i / 6) * 220)
+			add_child(road)
+			var enemy := Enemy.new()
+			enemy.setup(types[i])
+			road.add_child(enemy)
+			enemy.speed = 0.0
+			enemy.face = 1.0
+			if types[i] == "troll":
+				enemy.hp = enemy.max_hp * 0.5
+			var label := Label.new()
+			label.text = Defs.ENEMIES[types[i]]["name"]
+			label.position = Vector2(-70, 40)
+			label.custom_minimum_size.x = 140
+			label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+			label.add_theme_font_override("font", Ui.font())
+			road.add_child(label)
 
 	func _draw() -> void:
 		draw_rect(Rect2(0, 0, 960, 540), Color("7dba58"))
-
-
-class EnemySprite extends Node2D:
-	var type := "grunt"
-	var _t := 0.0
-
-	func _process(delta: float) -> void:
-		_t += delta
-		queue_redraw()
-
-	func _draw() -> void:
-		var d: Dictionary = Defs.ENEMIES[type]
-		var r := float(d["radius"]) * 1.7
-		EnemyArt.draw(self, type, r, 1.0, _t, false, false, false, type == "troll", 0.0)
-		draw_string(Ui.font(), Vector2(-70, r * 0.85 + 34), d["name"], HORIZONTAL_ALIGNMENT_CENTER, 140, 14, Color.WHITE)
 
 
 ## Образцовые картинки (цветные фигуры с отметкой «ног») в user://art_test, чтобы проверить якоря и размеры.
@@ -88,7 +89,6 @@ func _make_sample_art() -> void:
 		DirAccess.make_dir_recursive_absolute(ProjectSettings.globalize_path(path.get_base_dir()))
 		var img := Image.create(spec[1], spec[2], false, Image.FORMAT_RGBA8)
 		img.fill(Color(0, 0, 0, 0))
-		# тело (прямоугольник с закруглением по краям) и белая полоса у «ног»
 		img.fill_rect(Rect2i(4, 4, spec[1] - 8, spec[2] - 8), spec[3])
 		img.fill_rect(Rect2i(0, spec[2] - 6, spec[1], 6), Color.WHITE)
 		img.save_png(path)

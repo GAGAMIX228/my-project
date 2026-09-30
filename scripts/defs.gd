@@ -28,18 +28,18 @@ const PADS := [
 ## Особенности (необязательные): range, shot_dmg, shot_rate: стреляет по бойцам и героям; aura: радиус,
 ## в котором орки рядом идут на 30% быстрее; regen: сколько здоровья в секунду возвращает, если его не бьют.
 const ENEMIES := {
-	"grunt": {"name": "Орк-воин", "hp": 82, "speed": 55.0, "armor": 0.0, "mres": 0.0, "gold": 6, "radius": 11.0, "leak": 1, "atk": 5, "fly": false},
-	"raider": {"name": "Волчий наездник", "hp": 51, "speed": 97.0, "armor": 0.0, "mres": 0.0, "gold": 5, "radius": 9.0, "leak": 1, "atk": 3, "fly": false},
-	"shield": {"name": "Орк-щитоносец", "hp": 234, "speed": 44.0, "armor": 0.5, "mres": 0.0, "gold": 14, "radius": 13.0, "leak": 2, "atk": 7, "fly": false},
-	"berserk": {"name": "Орк-берсерк", "hp": 195, "speed": 47.0, "armor": 0.1, "mres": 0.0, "gold": 13, "radius": 12.0, "leak": 2, "atk": 8, "fly": false},
-	"shaman": {"name": "Орк-шаман", "hp": 124, "speed": 46.0, "armor": 0.0, "mres": 0.0, "gold": 16, "radius": 11.0, "leak": 1, "atk": 3, "fly": false},
-	"warlock": {"name": "Орк-колдун", "hp": 143, "speed": 50.0, "armor": 0.0, "mres": 0.65, "gold": 14, "radius": 11.0, "leak": 1, "atk": 6, "fly": false},
-	"gryph": {"name": "Орк на грифе", "hp": 98, "speed": 88.0, "armor": 0.0, "mres": 0.0, "gold": 12, "radius": 11.0, "leak": 2, "atk": 0, "fly": true},
-	"archer": {"name": "Орк-лучник", "hp": 70, "speed": 52.0, "armor": 0.0, "mres": 0.0, "gold": 9, "radius": 10.0, "leak": 1, "atk": 3, "fly": false, "range": 130.0, "shot_dmg": 4.0, "shot_rate": 1.7},
-	"brute": {"name": "Орк-громила", "hp": 420, "speed": 36.0, "armor": 0.25, "mres": 0.0, "gold": 22, "radius": 16.0, "leak": 3, "atk": 15, "fly": false},
-	"banner": {"name": "Орк-знаменосец", "hp": 150, "speed": 46.0, "armor": 0.1, "mres": 0.0, "gold": 18, "radius": 11.0, "leak": 1, "atk": 4, "fly": false, "aura": 95.0},
-	"troll": {"name": "Тролль", "hp": 330, "speed": 42.0, "armor": 0.0, "mres": 0.25, "gold": 24, "radius": 15.0, "leak": 3, "atk": 12, "fly": false, "regen": 9.0},
-	"chief": {"name": "Вождь орков", "hp": 1755, "speed": 34.0, "armor": 0.35, "mres": 0.2, "gold": 120, "radius": 19.0, "leak": 5, "atk": 16, "fly": false},
+	"grunt": {"name": "Орк-воин", "hp": 57, "speed": 55.0, "armor": 0.0, "mres": 0.0, "gold": 6, "radius": 11.0, "leak": 1, "atk": 5, "fly": false},
+	"raider": {"name": "Волчий наездник", "hp": 36, "speed": 97.0, "armor": 0.0, "mres": 0.0, "gold": 5, "radius": 9.0, "leak": 1, "atk": 3, "fly": false},
+	"shield": {"name": "Орк-щитоносец", "hp": 164, "speed": 44.0, "armor": 0.5, "mres": 0.0, "gold": 14, "radius": 13.0, "leak": 2, "atk": 7, "fly": false},
+	"berserk": {"name": "Орк-берсерк", "hp": 136, "speed": 47.0, "armor": 0.1, "mres": 0.0, "gold": 13, "radius": 12.0, "leak": 2, "atk": 8, "fly": false},
+	"shaman": {"name": "Орк-шаман", "hp": 87, "speed": 46.0, "armor": 0.0, "mres": 0.0, "gold": 16, "radius": 11.0, "leak": 1, "atk": 3, "fly": false},
+	"warlock": {"name": "Орк-колдун", "hp": 100, "speed": 50.0, "armor": 0.0, "mres": 0.65, "gold": 14, "radius": 11.0, "leak": 1, "atk": 6, "fly": false},
+	"gryph": {"name": "Орк на грифе", "hp": 69, "speed": 88.0, "armor": 0.0, "mres": 0.0, "gold": 12, "radius": 11.0, "leak": 2, "atk": 0, "fly": true},
+	"archer": {"name": "Орк-лучник", "hp": 49, "speed": 52.0, "armor": 0.0, "mres": 0.0, "gold": 9, "radius": 10.0, "leak": 1, "atk": 3, "fly": false, "range": 130.0, "shot_dmg": 4.0, "shot_rate": 1.7},
+	"brute": {"name": "Орк-громила", "hp": 294, "speed": 36.0, "armor": 0.25, "mres": 0.0, "gold": 22, "radius": 16.0, "leak": 3, "atk": 15, "fly": false},
+	"banner": {"name": "Орк-знаменосец", "hp": 105, "speed": 46.0, "armor": 0.1, "mres": 0.0, "gold": 18, "radius": 11.0, "leak": 1, "atk": 4, "fly": false, "aura": 95.0},
+	"troll": {"name": "Тролль", "hp": 231, "speed": 42.0, "armor": 0.0, "mres": 0.25, "gold": 24, "radius": 15.0, "leak": 3, "atk": 12, "fly": false, "regen": 6.0},
+	"chief": {"name": "Вождь орков", "hp": 1228, "speed": 34.0, "armor": 0.35, "mres": 0.2, "gold": 120, "radius": 19.0, "leak": 5, "atk": 16, "fly": false},
 }
 
 ## Башни людей. У каждой три уровня. upgrades: цена улучшения до 2-го и до 3-го уровня.
