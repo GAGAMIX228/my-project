@@ -10,6 +10,7 @@ static var root := "res://assets/art/"
 static var _textures := {}    # путь -> Texture2D или null
 static var _frames := {}      # папка -> SpriteFrames или null
 static var _meta := {}        # папка -> словарь настроек
+static var _pixel := -1       # -1 ещё не проверяли, 0 нет, 1 да
 
 const LOOPING := ["idle", "walk"]   # эти анимации повторяются, остальные (attack, die, shoot) играют один раз
 
@@ -20,6 +21,20 @@ static func reset(new_root := "res://assets/art/") -> void:
 	_textures.clear()
 	_frames.clear()
 	_meta.clear()
+	_pixel = -1
+
+
+## Пиксель-арт ли набор картинок. Признак: файл style.json с {"pixel_art": true} в папке картинок.
+## Для пиксель-арта спрайты рисуются без сглаживания (иначе они мылятся).
+static func pixel_art() -> bool:
+	if _pixel < 0:
+		_pixel = 0
+		var path := root + "style.json"
+		if FileAccess.file_exists(path):
+			var parsed: Variant = JSON.parse_string(FileAccess.get_file_as_string(path))
+			if parsed is Dictionary and bool(parsed.get("pixel_art", false)):
+				_pixel = 1
+	return _pixel == 1
 
 
 ## Картинка по пути внутри assets/art, например "icons/heart.png". Нет файла: null.
@@ -121,6 +136,8 @@ static func make_sprite(dir: String, feet: Vector2) -> AnimatedSprite2D:
 	var m := meta(dir)
 	var sprite := AnimatedSprite2D.new()
 	sprite.sprite_frames = sf
+	if pixel_art():
+		sprite.texture_filter = CanvasItem.TEXTURE_FILTER_NEAREST
 	var scale_value: float = m["scale"]
 	sprite.scale = Vector2(scale_value, scale_value)
 	var first_anim := "walk" if sf.has_animation("walk") else (sf.get_animation_names()[0] as String)

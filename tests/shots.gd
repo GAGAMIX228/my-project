@@ -23,6 +23,9 @@ func _ready() -> void:
 	var heroes := OS.get_environment("SHOTS_HEROES")   # например ashgar,morven
 	if heroes != "":
 		Game.loadout_heroes.assign(Array(heroes.split(",")))
+	var art_root := OS.get_environment("ART_ROOT")   # папка с картинками для скриншота, например user://ts_demo
+	if art_root != "":
+		ArtPack.reset(art_root)
 	if mode == "template":
 		_make_templates()
 		return

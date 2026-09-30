@@ -40,6 +40,8 @@ func _refresh_art() -> void:
 	var scale_value := 0.5
 	_art = Sprite2D.new()
 	_art.texture = tex
+	if ArtPack.pixel_art():
+		_art.texture_filter = CanvasItem.TEXTURE_FILTER_NEAREST
 	_art.scale = Vector2(scale_value, scale_value)
 	_art.offset = Vector2(0, -tex.get_height() * 0.5)   # низ картинки стоит на площадке
 	_art.position = Vector2(0, 6)
