@@ -6,6 +6,11 @@ var _rng := RandomNumberGenerator.new()
 
 
 func _draw() -> void:
+	# готовый фон уровня (assets/art/levels/<id>/background.png), если он есть
+	var picture := ArtPack.texture("levels/%s/background.png" % Game.level_id)
+	if picture != null:
+		draw_texture_rect(picture, Rect2(Vector2.ZERO, Defs.VIEW), false)
+		return
 	_rng.seed = 11
 	_draw_grass()
 	_draw_pond(Vector2(812, 96))

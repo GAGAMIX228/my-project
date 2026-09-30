@@ -26,4 +26,10 @@ func _process(delta: float) -> void:
 
 
 func _draw() -> void:
+	# настоящий портрет (assets/art/heroes/<id>/portrait.png) вместо рисунка кодом
+	var portrait := ArtPack.texture("heroes/%s/portrait.png" % hid)
+	if portrait != null:
+		var cy := -24.0 if Defs.HEROES[hid]["kind"] == "dragon" else -8.0   # центр тела героя (см. attach)
+		draw_texture_rect(portrait, Rect2(-22, cy - 22, 44, 44), false)
+		return
 	HeroArt.draw(self, hid, Defs.HEROES[hid], 1.0, false, 0.0, false, _time, false)

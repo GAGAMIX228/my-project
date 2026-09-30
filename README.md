@@ -27,11 +27,12 @@
 - `scripts/main.gd` собирает уровень, запускает волны, обрабатывает нажатия и клавиши.
 - `scripts/title.gd` и `title_art.gd` заставка и окна ячеек, `scripts/campaign.gd` и `map_art.gd` карта кампании, `scripts/loadout_panel.gd` раздел сборки, `scripts/hud.gd` интерфейс боя, `scripts/ui.gd` тема (дерево и золото), `scripts/icons.gd` значки.
 - `scripts/background.gd` рисует карту.
+- `assets/README.md` как класть настоящие картинки и анимации (игра подхватывает их из `assets/art`), задание художнику и шаблоны.
 - `scenes/title.tscn` стартовая сцена, `scenes/campaign.tscn` карта и сборка, `scenes/main.tscn` бой.
 - `assets/fonts` шрифт Russo One (лицензия OFL).
 - `tests/sim.tscn` бот проходит уровень, `tests/ui.tscn` проверка интерфейса, `tests/bar.tscn` казарма против первой волны, `tests/shots.tscn` скриншоты (запуск описан в `CLAUDE.md`, раздел 14).
 
-Вся графика пока нарисована кодом. Позже её можно заменить настоящими картинками.
+Вся графика пока нарисована кодом. Настоящие картинки и анимации можно класть в `assets/art` по инструкции `assets/README.md`: игра подхватит их сама, а чего не хватает, покажет `godot --headless --path . res://tests/art_check.tscn`.
 
 ## Как выпустить в браузер
 

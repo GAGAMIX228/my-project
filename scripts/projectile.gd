@@ -94,6 +94,12 @@ func _explode() -> void:
 
 
 func _draw() -> void:
+	# настоящая картинка снаряда (assets/art/projectiles/<вид>.png), если она есть
+	var picture := ArtPack.texture("projectiles/%s.png" % (kind + "_big" if big else kind))
+	if picture != null:
+		var half := picture.get_size() * 0.25
+		draw_texture_rect(picture, Rect2(-half, half * 2.0), false)
+		return
 	if kind == "arrow":
 		if big:
 			draw_line(Vector2(-16, 0), Vector2(7, 0), Color("ffd24a"), 3.4)

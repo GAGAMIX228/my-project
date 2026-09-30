@@ -39,6 +39,15 @@ func _ready() -> void:
 	add_to_group("heroes")
 	if flying:
 		z_index = 1
+	_setup_art()
+
+
+func _art_dir() -> String:
+	return "heroes/%s" % hid
+
+
+func _art_feet() -> Vector2:
+	return Vector2(0, -6.0) if flying else Vector2(0, radius * 0.8)
 
 
 func is_ranged() -> bool:
@@ -300,8 +309,14 @@ func _draw() -> void:
 			var m := post - position
 			draw_line(m + Vector2(-6, -6), m + Vector2(6, 6), Color(1.0, 0.89, 0.48, 0.85), 2.0)
 			draw_line(m + Vector2(6, -6), m + Vector2(-6, 6), Color(1.0, 0.89, 0.48, 0.85), 2.0)
-	HeroArt.draw(self, hid, def, face, _hurt > 0.0, 1.0 if _swing > 0.0 else 0.0, rage > 0.0, _time)
+	var bar_y := -26.0 - 22.0 if flying else -r - (16.0 if hid == "edrik" or hid == "kara" else 14.0)
+	if _sprite != null:
+		Art.blob_shadow(self, Vector2(0, 8 if flying else r * 0.85), r * 1.3)
+		bar_y = _sprite.position.y - float(_sprite.get_meta("height")) - 6.0
+		if rage > 0.0:
+			draw_circle(Vector2(0, _sprite.position.y - float(_sprite.get_meta("height")) * 0.5), r + 6.0, Color(1.0, 0.35, 0.23, 0.3))
+	else:
+		HeroArt.draw(self, hid, def, face, _hurt > 0.0, 1.0 if _swing > 0.0 else 0.0, rage > 0.0, _time)
 	if hp < max_hp:
-		var bar_y := -26.0 - 22.0 if flying else -r - (16.0 if hid == "edrik" or hid == "kara" else 14.0)
 		Art.hp_bar(self, 0.0, bar_y, 26.0, hp / max_hp, Color("59c46a"))
 	Art.label(self, Vector2(0, 26.0 if flying else r + 13.0), def["name"])

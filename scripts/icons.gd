@@ -46,6 +46,10 @@ static func _star(ci: CanvasItem, c: Vector2, r: float, fill: Color, edge: Color
 
 ## Звезда уровня: заполненная или пустая.
 static func star(ci: CanvasItem, c: Vector2, r: float, filled: bool) -> void:
+	var picture := ArtPack.texture("icons/star_%s.png" % ("full" if filled else "empty"))
+	if picture != null:
+		ci.draw_texture_rect(picture, Rect2(c - Vector2(r, r), Vector2(r, r) * 2.0), false)
+		return
 	if filled:
 		_star(ci, c, r, Color("f4c542"), Color("8a5f0a"))
 	else:
@@ -53,6 +57,11 @@ static func star(ci: CanvasItem, c: Vector2, r: float, filled: bool) -> void:
 
 
 static func draw(ci: CanvasItem, id: String, c: Vector2, r: float) -> void:
+	# настоящий значок (assets/art/icons/<id>.png, двоеточие заменяется на подчёркивание), если он есть
+	var picture := ArtPack.texture("icons/%s.png" % id.replace(":", "_"))
+	if picture != null:
+		ci.draw_texture_rect(picture, Rect2(c - Vector2(r, r), Vector2(r, r) * 2.0), false)
+		return
 	match id:
 		"heart":
 			ci.draw_circle(_p(c, r, -0.42, -0.28), r * 0.5, Color("e0483c"))

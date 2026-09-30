@@ -13,11 +13,54 @@ var _cd := 0.3
 var _angle := -1.2
 var _recoil := 0.0
 var _time := 0.0
+var _art: Sprite2D = null              # настоящая картинка башни (assets/art/towers/<вид>_<уровень>.png)
+var _shoot_art: AnimatedSprite2D = null   # анимация выстрела (towers/<вид>_<уровень>_shoot/shoot_00.png ...)
 
 
 func setup(tower_kind: String) -> void:
 	kind = tower_kind
 	invested = int(Defs.TOWERS[kind]["cost"])
+
+
+func _ready() -> void:
+	_refresh_art()
+
+
+## Ставит настоящую картинку текущего уровня, если она есть. Иначе башня рисует себя кодом.
+func _refresh_art() -> void:
+	if _art != null:
+		_art.queue_free()
+		_art = null
+	if _shoot_art != null:
+		_shoot_art.queue_free()
+		_shoot_art = null
+	var tex := ArtPack.texture("towers/%s_%d.png" % [kind, level])
+	if tex == null:
+		return
+	var scale_value := 0.5
+	_art = Sprite2D.new()
+	_art.texture = tex
+	_art.scale = Vector2(scale_value, scale_value)
+	_art.offset = Vector2(0, -tex.get_height() * 0.5)   # низ картинки стоит на площадке
+	_art.position = Vector2(0, 6)
+	add_child(_art)
+	var dir := "towers/%s_%d_shoot" % [kind, level]
+	if ArtPack.has_frames(dir):
+		_shoot_art = ArtPack.make_sprite(dir, Vector2(0, 6))
+		_shoot_art.visible = false
+		_shoot_art.animation_finished.connect(func():
+			_shoot_art.visible = false
+			_art.visible = true)
+		add_child(_shoot_art)
+
+
+## Играет анимацию выстрела, если она нарисована.
+func _play_shoot_art() -> void:
+	if _shoot_art == null or not _shoot_art.sprite_frames.has_animation("shoot"):
+		return
+	_art.visible = false
+	_shoot_art.visible = true
+	_shoot_art.play("shoot")
 
 
 func stat() -> Dictionary:
@@ -34,6 +77,7 @@ func upgrade_cost() -> int:
 func upgrade() -> void:
 	invested += upgrade_cost()
 	level += 1
+	_refresh_art()
 	if kind == "barracks":
 		_sync_soldiers()
 
@@ -128,6 +172,7 @@ func _pick_target(s: Dictionary) -> Enemy:
 func _fire(enemy: Enemy, s: Dictionary) -> void:
 	_cd = float(s["rate"])
 	_recoil = 0.15
+	_play_shoot_art()
 	_angle = (enemy.aim_point() - global_position).angle()
 	var p := Projectile.new()
 	p.kind = "shell" if kind == "mortar" else ("arrow" if kind == "archer" else "orb")
@@ -164,6 +209,12 @@ func _draw() -> void:
 		else:
 			draw_circle(Vector2.ZERO, range_px, Color(1, 1, 1, 0.14))
 			draw_arc(Vector2.ZERO, range_px, 0.0, TAU, 72, Color(1, 1, 1, 0.7), 2.0, true)
+	if _art != null:
+		if show_level:
+			for i in level:
+				draw_circle(Vector2(-(level - 1) * 5.0 + i * 10.0, 14), 3.4, Art.OUTLINE)
+				draw_circle(Vector2(-(level - 1) * 5.0 + i * 10.0, 14), 2.4, Color("f4c542"))
+		return
 	Art.blob_shadow(self, Vector2(0, 7), 28.0)
 	match kind:
 		"archer":

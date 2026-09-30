@@ -28,11 +28,50 @@ var _cd := 0.0
 var _swing := 0.0
 var _hurt := 0.0
 var _phase := 0.0       # фаза шага для рисунка
+var _sprite: AnimatedSprite2D = null   # настоящая картинка бойца, если она есть (assets/art)
+var _moving := false
 var _last_pos := Vector2.ZERO
 
 
 func _ready() -> void:
 	add_to_group("soldiers")
+	_setup_art()
+
+
+## Папка с настоящими анимациями этого бойца (у героя другая).
+func _art_dir() -> String:
+	return "soldiers/knight"
+
+
+## Куда ставить ноги настоящего спрайта (у летающих героев выше земли).
+func _art_feet() -> Vector2:
+	return Vector2(0, radius * 0.8)
+
+
+func _setup_art() -> void:
+	_sprite = ArtPack.make_sprite(_art_dir(), _art_feet())
+	if _sprite != null:
+		add_child(_sprite)
+		if temp and color != Color("4a78c4"):
+			_sprite.modulate = color.lightened(0.55)   # призванные орки и духи окрашиваются
+
+
+## Настоящая анимация: куда смотрит, стоит, идёт или бьёт.
+func _update_sprite() -> void:
+	_sprite.visible = not dead
+	_sprite.flip_h = face < 0.0
+	if _swing > 0.0:
+		ArtPack.play(_sprite, "attack")
+	elif _moving:
+		ArtPack.play(_sprite, "walk")
+	else:
+		ArtPack.play(_sprite, "idle")
+	if _hurt > 0.0:
+		_sprite.modulate = Color(2.2, 2.2, 2.2)
+	elif temp and color != Color("4a78c4"):
+		_sprite.modulate = color.lightened(0.55)
+	else:
+		_sprite.modulate = Color.WHITE
 
 
 func take_damage(amount: float) -> void:
@@ -67,9 +106,12 @@ func _process(delta: float) -> void:
 	if _swing > 0.0:
 		_swing -= delta
 	_tick(delta)
-	if position.distance_to(_last_pos) > 0.05:
+	_moving = position.distance_to(_last_pos) > 0.05
+	if _moving:
 		_phase += delta * 11.0
 	_last_pos = position
+	if _sprite != null:
+		_update_sprite()
 	if dead:
 		respawn -= delta
 		if respawn <= 0.0:
@@ -152,6 +194,11 @@ func _find_target() -> void:
 
 func _draw() -> void:
 	var r := radius
+	if _sprite != null:
+		Art.blob_shadow(self, Vector2(0, r * 0.85), r * 1.25)
+		if hp < max_hp:
+			Art.hp_bar(self, 0.0, _sprite.position.y - float(_sprite.get_meta("height")) - 4.0, 20.0, hp / max_hp, Color("59c46a"))
+		return
 	var f := face
 	var step := _phase
 	Art.blob_shadow(self, Vector2(0, r * 0.85), r * 1.25)

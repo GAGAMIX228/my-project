@@ -10,6 +10,8 @@ var _rng := RandomNumberGenerator.new()
 func _ready() -> void:
 	mouse_filter = Control.MOUSE_FILTER_IGNORE
 	set_anchors_preset(Control.PRESET_FULL_RECT)
+	if ArtPack.texture("title/background.png") != null:
+		return   # готовая картина заставки: башни и герои кодом не нужны
 	_add_tower("archer", Vector2(160, 352), 3.4)
 	_add_tower("mage", Vector2(282, 384), 2.7)
 	_add_hero("tarn", Vector2(205, 482), 3.0)
@@ -41,6 +43,16 @@ func _process(delta: float) -> void:
 
 
 func _draw() -> void:
+	var picture := ArtPack.texture("title/background.png")
+	if picture != null:
+		draw_texture_rect(picture, Rect2(Vector2.ZERO, Defs.VIEW), false)
+		var logo := ArtPack.texture("title/logo.png")
+		if logo != null:
+			var logo_size := logo.get_size() * 0.5
+			draw_texture_rect(logo, Rect2(Vector2((Defs.VIEW.x - logo_size.x) * 0.5, 14), logo_size), false)
+		else:
+			_logo()
+		return
 	_rng.seed = 21
 	_sky()
 	_ridge(330.0, 90.0, 1.0, Color("6a6fb4"), true)

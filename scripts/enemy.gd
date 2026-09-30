@@ -33,6 +33,8 @@ var _heal_timer := 1.5
 var _since_hit := 99.0
 var _shot_cd := 1.0
 var _buff_timer := 0.0
+var _sprite: AnimatedSprite2D = null   # настоящая картинка врага (assets/art/enemies/<тип>), если она есть
+var _fighting := false
 var _atk_cd := 0.5
 var _last_x := 0.0
 
@@ -63,6 +65,33 @@ func _ready() -> void:
 	progress = 0.0
 	add_to_group("enemies")
 	_last_x = global_position.x
+	_setup_art()
+
+
+## Если для этого врага есть настоящая анимация, ставим её вместо рисования кодом.
+func _setup_art() -> void:
+	var lift := -24.0 if flying else 0.0
+	_sprite = ArtPack.make_sprite("enemies/%s" % type, Vector2(0, radius * 0.85 + lift))
+	if _sprite != null:
+		add_child(_sprite)
+
+
+## Обновляет настоящую анимацию: куда смотрит, идёт или дерётся, вспышка и заморозка.
+func _update_sprite() -> void:
+	_sprite.flip_h = face < 0.0
+	if stun > 0.0:
+		_sprite.pause()
+	elif _fighting:
+		ArtPack.play(_sprite, "attack")
+	else:
+		ArtPack.play(_sprite, "walk")
+		_sprite.speed_scale = 1.3 if buffed else 1.0
+	if flash > 0.0:
+		_sprite.modulate = Color(2.2, 2.2, 2.2)
+	elif ice > 0.0:
+		_sprite.modulate = Color(0.7, 0.9, 1.25)
+	else:
+		_sprite.modulate = Color.WHITE
 
 
 ## Куда целиться: у летающих врагов центр выше земли.
@@ -139,6 +168,8 @@ func _process(delta: float) -> void:
 	if dead:
 		return
 	phase += delta
+	if _sprite != null:
+		_update_sprite()
 	if flash > 0.0:
 		flash -= delta
 	if ice > 0.0:
@@ -175,6 +206,7 @@ func _process(delta: float) -> void:
 
 ## Если путь преградил боец, орк останавливается и дерётся с ним. Возвращает true, пока идёт бой.
 func _fight(delta: float) -> bool:
+	_fighting = false
 	if flying or blocker == null:
 		return false
 	if not is_instance_valid(blocker) or blocker.dead:
@@ -188,6 +220,7 @@ func _fight(delta: float) -> bool:
 	if _atk_cd <= 0.0:
 		_atk_cd = 0.7 if enraged else 1.0
 		blocker.take_damage(atk * (1.5 if enraged else 1.0))
+	_fighting = true
 	return true
 
 
@@ -265,16 +298,21 @@ func _draw() -> void:
 	var r := radius
 	var lift := -24.0 if flying else 0.0
 	var enraged := type == "berserk" and hp < max_hp * 0.5
-	EnemyArt.draw(self, type, r, face, phase, flash > 0.0, enraged, buffed, healing, aura)
+	var top := lift - r * 1.75   # над головой, сюда ставим полоску здоровья
+	if _sprite != null:
+		Art.blob_shadow(self, Vector2(0, r * 0.85), r * 1.15)
+		top = _sprite.position.y - float(_sprite.get_meta("height")) - 2.0
+	else:
+		EnemyArt.draw(self, type, r, face, phase, flash > 0.0, enraged, buffed, healing, aura)
 	# головы находятся примерно на 1.55·r над центром врага
-	if ice > 0.0:
+	if ice > 0.0 and _sprite == null:
 		draw_circle(Vector2(0, lift - r * 0.4), r * 1.35, Color(0.66, 0.89, 1.0, 0.5))
 	if stun > 0.0 and ice <= 0.0:
 		for i in 3:
 			var a := phase * 5.0 + i * 2.1
-			draw_circle(Vector2(cos(a) * 9.0, lift - r * 1.8 + sin(a) * 3.0), 2.4, Color("ffe27a"))
+			draw_circle(Vector2(cos(a) * 9.0, top + 4.0 + sin(a) * 3.0), 2.4, Color("ffe27a"))
 	if burn > 0.0:
 		Art.tri(self, Vector2(-4, lift - r * 0.3), Vector2(0, lift - r * 1.5 - sin(phase * 14.0) * 2.0), Vector2(4, lift - r * 0.3), Color(1.0, 0.54, 0.16, 0.8))
 	if hp < max_hp:
 		var bar := Color("e0523f") if type == "chief" else Color("d94a3a")
-		Art.hp_bar(self, 0.0, lift - r * 1.75 - 6.0, maxf(20.0, r * 2.0), hp / max_hp, bar)
+		Art.hp_bar(self, 0.0, top - 4.0, maxf(20.0, r * 2.0), hp / max_hp, bar)

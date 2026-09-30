@@ -32,7 +32,8 @@ func _ready() -> void:
 	_warp.seed = 4
 	_shade.frequency = 0.045
 	_shade.seed = 9
-	_build_texture()
+	if ArtPack.texture("campaign/map.png") == null:
+		_build_texture()
 
 
 ## Область в точке карты.
@@ -86,6 +87,11 @@ func _build_texture() -> void:
 # ---------- рисование ----------
 
 func _draw() -> void:
+	# готовая карта (assets/art/campaign/map.png), если она есть
+	var picture := ArtPack.texture("campaign/map.png")
+	if picture != null:
+		draw_texture_rect(picture, Rect2(Vector2.ZERO, Defs.VIEW), false)
+		return
 	draw_texture_rect(_tex, Rect2(Vector2.ZERO, Defs.VIEW), false)
 	_rng.seed = 12
 	var items: Array = []   # [y, функция рисования]: рисуем сверху вниз, чтобы дальние предметы были под ближними
