@@ -1,6 +1,6 @@
 extends Node
 ## Скриншоты для проверки глазами. Нужен виртуальный экран (см. CLAUDE.md, раздел 14).
-## Запуск: ... res://tests/shots.tscn -- battle   или   -- prep   или   -- gallery (все девять героев)
+## Запуск: ... res://tests/shots.tscn -- battle, campaign (карта и вкладки), menu (круговое меню башен), gallery (все герои)
 ## Куда сохранять: переменная окружения SHOTS_DIR, по умолчанию папка user://shots.
 
 var main: Node
@@ -15,11 +15,15 @@ func _ready() -> void:
 	var args := OS.get_cmdline_user_args()
 	if args.size() > 0:
 		mode = args[0]
+	Game.persist = false
 	dir = OS.get_environment("SHOTS_DIR")
 	if dir == "":
 		dir = ProjectSettings.globalize_path("user://shots")
 	DirAccess.make_dir_recursive_absolute(dir)
-	var scene := "res://scenes/prep.tscn" if mode == "prep" else "res://scenes/main.tscn"
+	var heroes := OS.get_environment("SHOTS_HEROES")   # например ashgar,morven
+	if heroes != "":
+		Game.loadout_heroes.assign(Array(heroes.split(",")))
+	var scene := "res://scenes/campaign.tscn" if mode == "campaign" else "res://scenes/main.tscn"
 	main = (load(scene) as PackedScene).instantiate()
 	add_child(main)
 
@@ -50,9 +54,41 @@ func _process(delta: float) -> void:
 			_shot("gallery")
 			get_tree().quit()
 		return
-	if mode == "prep":
-		if t > 0.5:
-			_shot("prep")
+	if mode == "campaign":
+		if step == 0 and t > 0.4:
+			_shot("campaign_heroes")
+			main._panel.assign("hero", "kara")
+			main._panel.select_slot("hero", 0)
+			main._panel.show_tab("tower")
+			step = 1
+			t = 0.0
+		elif step == 1 and t > 0.3:
+			_shot("campaign_towers")
+			main._panel.show_tab("spell")
+			step = 2
+			t = 0.0
+		elif step == 2 and t > 0.3:
+			_shot("campaign_spells")
+			get_tree().quit()
+		return
+	if mode == "menu":
+		if step == 0 and t > 0.3:
+			main.build_tower(main.pads[1], "archer")
+			main._select(main.pads[2])
+			step = 1
+			t = 0.0
+		elif step == 1 and t > 0.4:
+			_shot("menu_build")
+			main._select(main.pads[1])
+			step = 2
+			t = 0.0
+		elif step == 2 and t > 0.4:
+			_shot("menu_upgrade")
+			main._select(main.pads[6])
+			step = 3
+			t = 0.0
+		elif step == 3 and t > 0.4:
+			_shot("menu_top")
 			get_tree().quit()
 		return
 	var g := get_node("/root/Game")
@@ -70,6 +106,7 @@ func _process(delta: float) -> void:
 		Engine.time_scale = 1.0
 		main.select_hero(1)
 		main.heroes[1].set_post(Vector2(380, 330))
+		main.select_hero(0)
 		main.spellbook.arm("frost")
 		t = 0.0
 		step = 2

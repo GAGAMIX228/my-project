@@ -18,7 +18,7 @@ const PATH := [
 
 ## Каменные площадки, на которых можно строить башни.
 const PADS := [
-	Vector2(95, 265), Vector2(245, 215), Vector2(300, 340), Vector2(300, 470),
+	Vector2(95, 265), Vector2(245, 215), Vector2(300, 340), Vector2(300, 448),
 	Vector2(350, 240), Vector2(495, 270), Vector2(555, 85), Vector2(555, 215),
 	Vector2(625, 300), Vector2(765, 300), Vector2(850, 350),
 ]
@@ -168,3 +168,23 @@ const SPELLS := {
 		"info": "Большой урон по площади, враги горят"},
 }
 const SPELL_ORDER := ["knights", "meteors", "reinforce", "quake", "frost", "wrath", "wave", "fireball"]
+
+## Башни рас, которых в игре пока нет. Показываются на экране сборки закрытыми.
+const FUTURE_TOWERS := [
+	["Застава", "Орки"], ["Метатели валунов", "Огры"], ["Казарма стрелков", "Гоблины"], ["Храм глубин", "Осьминоги"],
+	["Башня духов", "Шаманы"], ["Ледяная башня", "Йети"], ["Молниевая башня", "Гномы"], ["Баллиста", "Гномы"],
+	["Палач", "Минотавры"], ["Гнездо дракона", "Драконы"],
+]
+
+## Локации кампании (на карте). playable: уровень уже есть в игре. pos: место на карте.
+const LEVELS := [
+	{"id": "orcs", "name": "Земли орков", "race": "Орки", "playable": true, "pos": Vector2(70, 215)},
+	{"id": "ogres", "name": "Горы огров", "race": "Огры", "playable": false, "pos": Vector2(170, 115)},
+	{"id": "goblins", "name": "Болота гоблинов", "race": "Гоблины", "playable": false, "pos": Vector2(270, 215)},
+	{"id": "octopus", "name": "Глубины", "race": "Осьминоги", "playable": false, "pos": Vector2(370, 115)},
+	{"id": "shamans", "name": "Земли предков", "race": "Шаманы", "playable": false, "pos": Vector2(470, 215)},
+	{"id": "yetis", "name": "Ледяные пики", "race": "Йети", "playable": false, "pos": Vector2(570, 115)},
+	{"id": "gnomes", "name": "Подгорье", "race": "Гномы", "playable": false, "pos": Vector2(670, 215)},
+	{"id": "minotaurs", "name": "Лабиринт", "race": "Минотавры", "playable": false, "pos": Vector2(770, 115)},
+	{"id": "dragons", "name": "Гнездовье драконов", "race": "Драконы", "playable": false, "pos": Vector2(870, 215)},
+]

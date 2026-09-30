@@ -287,18 +287,11 @@ func _hurricane(ab: Dictionary) -> bool:
 
 # ---------- рисование ----------
 
-func _ball(x: float, y: float, r: float, fill: Color, outline := Color(0, 0, 0, 0), width := 1.0) -> void:
-	draw_circle(Vector2(x, y), r, fill)
-	if outline.a > 0.0:
-		draw_arc(Vector2(x, y), r, 0.0, TAU, 20, outline, width, true)
-
-
 func _draw() -> void:
 	if dead:
 		Art.label(self, Vector2(0, -22), "%s вернётся через %d с" % [def["name"], ceili(respawn)])
 		return
 	var r := radius
-	var f := face
 	if selected:
 		Art.ellipse_outline(self, Vector2(0, 8 if flying else r * 0.8), r + 7.0, (r + 7.0) * 0.42, Color("ffe27a"), 2.5)
 		if def.has("range"):
@@ -307,120 +300,8 @@ func _draw() -> void:
 			var m := post - position
 			draw_line(m + Vector2(-6, -6), m + Vector2(6, 6), Color(1.0, 0.89, 0.48, 0.85), 2.0)
 			draw_line(m + Vector2(6, -6), m + Vector2(-6, 6), Color(1.0, 0.89, 0.48, 0.85), 2.0)
-	if flying:
-		_draw_dragon()
-	else:
-		Art.ellipse(self, Vector2(0, r * 0.8), r, r * 0.4, Color(0, 0, 0, 0.25))
-		var body := Color.WHITE if _hurt > 0.0 else color
-		var sw := 1.0 if _swing > 0.0 else 0.0
-		match hid:
-			"edrik": _draw_knight(r, f, body, sw)
-			"grum": _draw_ogre(r, f, body, sw)
-			"kara": _draw_orc(r, f, body, sw)
-			"tarn": _draw_ranger(r, f, body)
-			"xol": _draw_mage(r, f, body)
-			_: _draw_shaman(r, body)
-		if rage > 0.0:
-			_ball(0, -2, r + 6.0, Color(1.0, 0.35, 0.23, 0.35))
-		if hp < max_hp:
-			var bar_y := -r - (16.0 if hid == "edrik" or hid == "kara" else 14.0)
-			Art.hp_bar(self, 0.0, bar_y, 26.0, hp / max_hp, Color("59c46a"))
-	Art.label(self, Vector2(0, 26.0 if flying else r + 13.0), def["name"])
-
-
-func _draw_knight(r: float, f: float, body: Color, sw: float) -> void:
-	_ball(0, -2, r, body, Color("22386b"), 1.3)
-	Art.half_disc(self, Vector2(0, -4), r * 0.82, Color("d8dbe3"))
-	draw_rect(Rect2(-2, -4, 4, 5), Color("2a2a33"))
-	Art.tri(self, Vector2(-3, -r - 2), Vector2(0, -r - 12), Vector2(5, -r - 1), Color("e0523f"))
-	draw_rect(Rect2(-f * (r + 1) - 3, -6, 6, 11), Color("e2b53c"))
-	draw_line(Vector2(f * (r - 2), 2), Vector2(f * (r + 11 + sw * 4), -8 + sw * 10), Color("e9edf2"), 2.4)
-
-
-func _draw_ogre(r: float, f: float, body: Color, sw: float) -> void:
-	_ball(0, -2, r, body, Color("5a3a16"), 1.5)
-	_ball(-4, -5, 2.2, Color.WHITE)
-	_ball(4, -5, 2.2, Color.WHITE)
-	_ball(-4, -5, 1.0, Color("222222"))
-	_ball(4, -5, 1.0, Color("222222"))
-	Art.tri(self, Vector2(-6, 2), Vector2(-3, 2), Vector2(-4.5, -3), Color("f3efe0"))
-	Art.tri(self, Vector2(6, 2), Vector2(3, 2), Vector2(4.5, -3), Color("f3efe0"))
-	draw_line(Vector2(f * (r - 2), 6), Vector2(f * (r + 12 + sw * 4), -10 + sw * 12), Color("5a3a16"), 4.0)
-	_ball(f * (r + 13 + sw * 4), -11 + sw * 12, 5.0, Color("6b4a2a"), Color("3d2614"), 1.0)
-
-
-func _draw_orc(r: float, f: float, body: Color, sw: float) -> void:
-	_ball(0, -2, r, body, Color("274a1a"), 1.3)
-	var paint := Color("c2483a")
-	draw_line(Vector2(-6, -8), Vector2(-2, -3), paint, 2.0)
-	draw_line(Vector2(6, -8), Vector2(2, -3), paint, 2.0)
-	_ball(-3.5, -4, 2.0, Color.WHITE)
-	_ball(3.5, -4, 2.0, Color.WHITE)
-	_ball(-3.5, -4, 0.9, Color("b01818"))
-	_ball(3.5, -4, 0.9, Color("b01818"))
-	Art.tri(self, Vector2(-4, -r - 1), Vector2(0, -r - 10), Vector2(4, -r - 1), paint)
-	var steel := Color("d9dde3")
-	draw_line(Vector2(f * (r - 2), 2), Vector2(f * (r + 8 + sw * 4), -6 + sw * 9), steel, 2.6)
-	draw_line(Vector2(-f * (r - 2), 2), Vector2(-f * (r + 6), -6), steel, 2.6)
-
-
-func _draw_ranger(r: float, f: float, body: Color) -> void:
-	_ball(0, -2, r, body, Color("25502a"), 1.3)
-	Art.half_disc(self, Vector2(0, -4), r * 0.95, Color("2f6b34"))
-	_ball(0, -1, r * 0.45, Color("f2d2a4"))
-	var turn := 0.0 if f > 0.0 else PI
-	draw_arc(Vector2(f * (r + 3), -2), 9.0, -1.3 + turn, 1.3 + turn, 12, Color("6b4a2a"), 2.2, true)
-
-
-func _draw_mage(r: float, f: float, body: Color) -> void:
-	_ball(0, -2, r, body, Color("155a68"), 1.3)
-	Art.tri(self, Vector2(-r, -6), Vector2(0, -r - 16), Vector2(r, -6), Color("1b6f80"))
-	_ball(0, -1, r * 0.42, Color("f2d2a4"))
-	draw_line(Vector2(f * (r + 3), 8), Vector2(f * (r + 3), -16), Color("8b6b3a"), 2.4)
-	_ball(f * (r + 3), -18, 4.0, Color("7fe0ff"), Color.WHITE, 1.0)
-
-
-func _draw_shaman(r: float, body: Color) -> void:
-	_ball(0, -2, r, body, Color("4a2f78"), 1.3)
-	var feathers := [Color("e0523f"), Color("f0b93a"), Color("4da35a")]
-	for i in range(-1, 2):
-		Art.tri(self, Vector2(i * 5 - 2, -r + 1), Vector2(i * 6, -r - 11), Vector2(i * 5 + 3, -r + 1), feathers[i + 1])
-	_ball(0, -1, r * 0.42, Color("f2d2a4"))
-	for i in 2:
-		var a := _time * 3.0 + i * 3.14
-		_ball(cos(a) * (r + 6.0), -4.0 + sin(a) * 5.0, 3.0, Color("d9b8ff"), Color.WHITE, 1.0)
-
-
-func _draw_dragon() -> void:
-	var f := face
-	var c: Color = color
-	var y := -22.0
-	var wing := sin(_time * 9.0 + position.x) * 0.5
-	Art.ellipse(self, Vector2(0, 8), 18.0, 6.0, Color(0, 0, 0, 0.25))
-	# хвост
-	var tail := PackedVector2Array()
-	for i in 9:
-		var t := i / 8.0
-		var p0 := Vector2(-f * 8.0, y + 3.0)
-		var p1 := Vector2(-f * 24.0, y + 12.0)
-		var p2 := Vector2(-f * 28.0, y - 2.0)
-		tail.append(p0.lerp(p1, t).lerp(p1.lerp(p2, t), t))
-	draw_polyline(tail, c, 5.0, true)
-	var shade := Color("8d8874") if hid == "morven" else Color(0, 0, 0, 0.3)
-	Art.tri(self, Vector2(-2, y - 2), Vector2(-18, y - 18 - wing * 12), Vector2(9, y - 5), c)
-	Art.tri(self, Vector2(-2, y - 2), Vector2(-18, y - 18 - wing * 12), Vector2(-6, y - 4), shade)
-	Art.tri(self, Vector2(2, y - 2), Vector2(16, y - 16 - wing * 12), Vector2(12, y - 2), c)
-	Art.ellipse(self, Vector2(0, y), 13.0, 8.5, Color.WHITE if _hurt > 0.0 else c)
-	Art.ellipse(self, Vector2(0, y + 2), 9.0, 5.0, Color(1, 1, 1, 0.28))
-	_ball(f * 12.0, y - 3.0, 6.0, c)
-	Art.tri(self, Vector2(f * 15.0, y - 3.0), Vector2(f * 22.0, y - 1.0), Vector2(f * 15.0, y + 2.0), c)
-	_ball(f * 12.0, y - 5.0, 1.6, Color.WHITE)
-	_ball(f * 12.5, y - 5.0, 0.8, Color("222222"))
-	Art.tri(self, Vector2(f * 9.0, y - 8.0), Vector2(f * 8.0, y - 14.0), Vector2(f * 12.0, y - 8.0), Color("f0e6c8"))
-	if hid == "morven":
-		for i in range(-1, 2):
-			draw_line(Vector2(i * 4.0, y - 6.0), Vector2(i * 4.0, y + 6.0), Color("6b6754"), 1.2)
-	if rage > 0.0:
-		_ball(0, y, 20.0, Color(1.0, 0.35, 0.23, 0.35))
+	HeroArt.draw(self, hid, def, face, _hurt > 0.0, 1.0 if _swing > 0.0 else 0.0, rage > 0.0, _time)
 	if hp < max_hp:
-		Art.hp_bar(self, 0.0, y - 26.0, 26.0, hp / max_hp, Color("59c46a"))
+		var bar_y := -26.0 - 22.0 if flying else -r - (16.0 if hid == "edrik" or hid == "kara" else 14.0)
+		Art.hp_bar(self, 0.0, bar_y, 26.0, hp / max_hp, Color("59c46a"))
+	Art.label(self, Vector2(0, 26.0 if flying else r + 13.0), def["name"])

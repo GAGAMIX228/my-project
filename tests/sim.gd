@@ -23,6 +23,7 @@ var order := [
 
 
 func _ready() -> void:
+	Game.persist = false
 	process_mode = Node.PROCESS_MODE_ALWAYS  # игра ставит паузу в конце, а тест должен успеть напечатать итог
 	var args := OS.get_cmdline_user_args()
 	if args.size() > 0:

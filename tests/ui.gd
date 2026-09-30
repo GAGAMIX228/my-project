@@ -48,18 +48,39 @@ func _process(_delta: float) -> void:
 	frames = 0
 	match step:
 		0:
-			# экран сборки
-			prep = (load("res://scenes/prep.tscn") as PackedScene).instantiate()
+			# карта кампании и панель сборки
+			Game.persist = false
+			Game.loadout_heroes.assign(["edrik", "tarn"])
+			Game.loadout_spells.assign(["knights", "meteors", "frost"])
+			prep = (load("res://scenes/campaign.tscn") as PackedScene).instantiate()
 			add_child(prep)
 			step = 1
 		1:
+			var panel: LoadoutPanel = prep._panel
 			check(Game.loadout_heroes.size() == 2 and Game.loadout_spells.size() == 3, "по умолчанию выбрано 2 героя и 3 заклинания")
-			prep._toggle(Game.loadout_heroes, "kara", 2)
-			check(",".join(Game.loadout_heroes) == "tarn,kara", "третий герой вытесняет самого раннего выбранного: %s" % str(Game.loadout_heroes))
-			prep._toggle(Game.loadout_heroes, "kara", 2)
-			check(prep._go.disabled, "с одним героем кнопка «В бой» выключена")
-			prep._toggle(Game.loadout_heroes, "edrik", 2)
-			check(not prep._go.disabled, "с двумя героями кнопка «В бой» включена")
+			check(panel.active["hero"] == 0, "сначала выбран первый слот героя")
+			panel.assign("hero", "kara")
+			check(",".join(Game.loadout_heroes) == "kara,tarn", "карточка занимает выбранный слот: %s" % str(Game.loadout_heroes))
+			check(panel.active["hero"] == 1, "после выбора активным становится следующий слот")
+			panel.select_slot("hero", 0)
+			panel.assign("hero", "kara")
+			check(",".join(Game.loadout_heroes) == "kara,tarn", "та же карточка в том же слоте ничего не меняет")
+			panel.select_slot("hero", 1)
+			panel.assign("hero", "kara")
+			check(",".join(Game.loadout_heroes) == "tarn,kara", "карточка из другого слота меняется местами: %s" % str(Game.loadout_heroes))
+			panel.select_slot("hero", 1)
+			panel.assign("hero", "zefira")
+			check(",".join(Game.loadout_heroes) == "tarn,zefira", "можно заменить конкретного героя: %s" % str(Game.loadout_heroes))
+			panel.select_slot("spell", 2)
+			panel.assign("spell", "fireball")
+			check(",".join(Game.loadout_spells) == "knights,meteors,fireball", "можно заменить конкретное заклинание: %s" % str(Game.loadout_spells))
+			panel.assign("tower", "mage")
+			check(",".join(Game.loadout_towers) == "archer,barracks,mage,mortar", "башни пока не меняются")
+			panel.show_tab("tower")
+			check(panel.kind == "tower", "вкладка башен открывается")
+			check(not prep._go.disabled and prep.selected == "orcs", "уровень орков выбран и доступен")
+			prep._select("ogres")
+			check(prep._go.disabled, "закрытый уровень нельзя запустить")
 			prep.queue_free()
 			step = 2
 		2:
@@ -72,23 +93,40 @@ func _process(_delta: float) -> void:
 			check(main.heroes.size() == 2, "в бою два героя")
 			check(main.heroes[0].hid == "edrik" and main.heroes[1].hid == "ishta", "герои те, что выбраны на экране сборки")
 			check(",".join(main.spellbook.spells) == "knights,quake,wave", "заклинания те, что выбраны")
-			check(main.heroes[0].selected and not main.heroes[1].selected, "сначала выбран первый герой")
-			_click(main.heroes[1].position)
+			check(main.hero_index == -1 and not main.heroes[0].selected, "в начале боя ни один герой не выбран")
+			_key(KEY_SPACE)
 			step = 4
 		4:
-			check(main.hero_index == 1 and main.heroes[1].selected, "нажатие на героя выбирает его")
-			_click(Vector2(600, 480))
+			check(main.hero_index == 0 and main.heroes[0].selected, "первый пробел выбирает первого героя")
+			_key(KEY_SPACE)
 			step = 5
 		5:
-			check(main.heroes[1].post.distance_to(Vector2(600, 480)) < 1.0, "нажатие на землю отправляет выбранного героя")
-			check(main.heroes[0].post.distance_to(Vector2(600, 480)) > 50.0, "второй герой остался на месте")
-			_key(KEY_1)
+			check(main.hero_index == 1 and main.heroes[1].selected and not main.heroes[0].selected, "второй пробел выбирает второго героя")
+			_click(Vector2(600, 480))
 			step = 6
 		6:
-			check(main.spellbook.armed == "knights", "клавиша 1 выбирает заклинание призыва")
-			_click(Vector2(600, 480))  # это не дорога
+			check(main.heroes[1].post.distance_to(Vector2(600, 480)) < 1.0, "нажатие на землю отправляет выбранного героя")
+			check(main.hero_index == -1 and not main.heroes[1].selected, "после приказа герой отвязывается")
+			_click(Vector2(200, 500))
 			step = 7
 		7:
+			check(main.heroes[1].post.distance_to(Vector2(600, 480)) < 1.0, "второй клик по земле героя уже не двигает")
+			check(main.heroes[0].post.distance_to(Vector2(200, 500)) > 50.0, "и первого героя тоже")
+			_click(main.heroes[0].position)
+			step = 8
+		8:
+			check(main.hero_index == 0, "нажатие на героя на карте выбирает его")
+			_key(KEY_ESCAPE)
+			step = 9
+		9:
+			check(main.hero_index == -1, "Esc снимает выбор героя")
+			_key(KEY_1)
+			step = 10
+		10:
+			check(main.spellbook.armed == "knights", "клавиша 1 выбирает заклинание призыва")
+			_click(Vector2(600, 480))  # это не дорога
+			step = 11
+		11:
 			check(main.spellbook.armed == "knights", "нажатие мимо дороги не применяет призыв")
 			var before := get_tree().get_nodes_in_group("soldiers").size()
 			_click(Vector2(300, 400))
@@ -96,20 +134,20 @@ func _process(_delta: float) -> void:
 			check(after == before + 2, "нажатие на дорогу призывает двух рыцарей (%d -> %d)" % [before, after])
 			check(main.spellbook.armed == "" and not main.spellbook.is_ready("knights"), "заклинание ушло на перезарядку")
 			_key(KEY_1)
-			step = 8
-		8:
+			step = 12
+		12:
 			check(main.spellbook.armed == "", "пока заклинание перезаряжается, его нельзя выбрать")
 			_key(KEY_2)
-			step = 9
-		9:
+			step = 13
+		13:
 			check(not main.spellbook.is_ready("quake"), "землетрясение срабатывает сразу, без выбора места")
 			_key(KEY_3)
-			step = 10
-		10:
+			step = 14
+		14:
 			check(main.spellbook.armed == "wave", "клавиша 3 выбирает волну глубин")
 			_click(Vector2(0, 0), MOUSE_BUTTON_RIGHT)
-			step = 11
-		11:
+			step = 15
+		15:
 			check(main.spellbook.armed == "", "правая кнопка отменяет выбор")
 			check(main.heroes[0].use_ability() == false, "способность без врагов не срабатывает")
 			check(main.heroes[0].ability_cd == 0.0, "и перезарядку не запускает")
@@ -118,23 +156,23 @@ func _process(_delta: float) -> void:
 			main.build_tower(main.pads[4], "mage")
 			main.start_wave()
 			Engine.time_scale = 8.0
-			step = 12
-		12:
+			step = 16
+		16:
 			if main.queue.is_empty() and Game.enemies().is_empty():
 				Engine.time_scale = 1.0
 				check(Game.kills >= 3, "герои и башни убивают орков первой волны (убито %d из 6, жизни %d)" % [Game.kills, Game.lives])
-				step = 13
-		13:
+				step = 17
+		17:
 			var hero: Hero = main.heroes[0]
 			hero.take_damage(9999.0)
 			check(hero.dead and hero.respawn > 0.0, "погибший герой ждёт возрождения")
-			step = 14
-		14:
+			step = 18
+		18:
 			Engine.time_scale = 30.0
 			if not main.heroes[0].dead:
 				Engine.time_scale = 1.0
 				check(main.heroes[0].hp == main.heroes[0].max_hp, "герой возродился со здоровьем")
-				step = 15
-		15:
+				step = 19
+		19:
 			print("Итог: %s" % ("всё прошло" if failures == 0 else "провалено проверок: %d" % failures))
 			get_tree().quit(1 if failures > 0 else 0)

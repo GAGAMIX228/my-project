@@ -7,6 +7,7 @@ var started := false
 
 
 func _ready() -> void:
+	Game.persist = false
 	process_mode = Node.PROCESS_MODE_ALWAYS
 	main = (load("res://scenes/main.tscn") as PackedScene).instantiate()
 	add_child(main)

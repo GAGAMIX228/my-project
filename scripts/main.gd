@@ -16,7 +16,7 @@ var clock := 0.0
 var selected: Pad = null
 var hovered: Pad = null
 var heroes: Array[Hero] = []
-var hero_index := 0    # какой герой выбран (ему адресованы нажатия на землю)
+var hero_index := -1   # какой герой выбран (-1: никто). Ему адресовано следующее нажатие на землю
 var spellbook: Spellbook
 
 
@@ -49,8 +49,8 @@ func _ready() -> void:
 	hud.bind(spellbook, heroes)
 	hud.spell_pressed.connect(func(i: int): spellbook.arm(Game.loadout_spells[i]))
 	hud.ability_pressed.connect(use_ability)
-	hud.hero_pressed.connect(select_hero)
-	hud.prep_requested.connect(_to_prep)
+	hud.hero_pressed.connect(toggle_hero)
+	hud.map_requested.connect(_to_map)
 	hud.wave_requested.connect(start_wave)
 	hud.speed_toggled.connect(_toggle_speed)
 	hud.pause_toggled.connect(_toggle_pause)
@@ -72,16 +72,26 @@ func _create_heroes() -> void:
 		hero.setup(Game.loadout_heroes[i], start)
 		units_root.add_child(hero)
 		heroes.append(hero)
-	select_hero(0)
 
 
+## Выбирает героя (или снимает выбор, если index равен -1).
 func select_hero(index: int) -> void:
-	if index < 0 or index >= heroes.size():
-		return
-	hero_index = index
+	hero_index = index if index >= 0 and index < heroes.size() else -1
 	for i in heroes.size():
-		heroes[i].selected = i == index
+		heroes[i].selected = i == hero_index
 		heroes[i].queue_redraw()
+
+
+## Нажатие на портрет: выбрать, а если уже выбран, то снять выбор.
+func toggle_hero(index: int) -> void:
+	select_hero(-1 if index == hero_index else index)
+
+
+## Пробел: выбрать следующего героя (первый пробел первого, второй пробел второго и так по кругу).
+func select_next_hero() -> void:
+	if heroes.is_empty():
+		return
+	select_hero((hero_index + 1) % heroes.size())
 
 
 func use_ability(index: int) -> bool:
@@ -235,8 +245,10 @@ func _unhandled_input(event: InputEvent) -> void:
 		var near := _hero_at(point)
 		if near >= 0:
 			select_hero(near)
-		elif hero_index < heroes.size():
+		elif hero_index >= 0:
+			# приказ выдан: герой отвязывается, следующий клик его уже не двигает
 			heroes[hero_index].set_post(point)
+			select_hero(-1)
 
 
 func _on_key(event: InputEventKey) -> void:
@@ -250,9 +262,12 @@ func _on_key(event: InputEventKey) -> void:
 		KEY_4, KEY_5:
 			use_ability(event.keycode - KEY_4)
 		KEY_SPACE:
+			select_next_hero()
+		KEY_ENTER, KEY_KP_ENTER:
 			start_wave()
 		KEY_ESCAPE:
 			spellbook.cancel()
+			select_hero(-1)
 			_select(null)
 
 
@@ -330,10 +345,10 @@ func _on_finished(_win: bool, _stars: int) -> void:
 	get_tree().paused = true
 
 
-func _to_prep() -> void:
+func _to_map() -> void:
 	get_tree().paused = false
 	Engine.time_scale = 1.0
-	get_tree().change_scene_to_file("res://scenes/prep.tscn")
+	get_tree().change_scene_to_file("res://scenes/campaign.tscn")
 
 
 func _restart() -> void:

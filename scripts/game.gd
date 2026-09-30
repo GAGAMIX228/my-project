@@ -23,6 +23,36 @@ var road: Curve2D
 # Что игрок взял в бой на экране сборки: два героя и три заклинания.
 var loadout_heroes: Array[String] = ["edrik", "tarn"]
 var loadout_spells: Array[String] = ["knights", "meteors", "frost"]
+var loadout_towers: Array[String] = ["archer", "barracks", "mage", "mortar"]
+
+# Кампания: какой уровень идёт и сколько звёзд получено на каждом.
+var level_id := "orcs"
+var level_stars := {}
+## Сохранять ли прогресс на диск. Автотесты выключают, чтобы не портить сохранение игрока.
+var persist := true
+
+const SAVE_PATH := "user://progress.cfg"
+
+
+func _ready() -> void:
+	load_progress()
+
+
+func load_progress() -> void:
+	var cfg := ConfigFile.new()
+	if cfg.load(SAVE_PATH) != OK:
+		return
+	for id: String in cfg.get_section_keys("stars"):
+		level_stars[id] = int(cfg.get_value("stars", id, 0))
+
+
+func save_progress() -> void:
+	if not persist:
+		return
+	var cfg := ConfigFile.new()
+	for id: String in level_stars:
+		cfg.set_value("stars", id, level_stars[id])
+	cfg.save(SAVE_PATH)
 
 
 func reset() -> void:
@@ -66,6 +96,8 @@ func win() -> void:
 		return
 	over = true
 	var stars := 3 if lives >= 18 else (2 if lives >= 10 else 1)
+	level_stars[level_id] = maxi(int(level_stars.get(level_id, 0)), stars)
+	save_progress()
 	finished.emit(true, stars)
 
 
