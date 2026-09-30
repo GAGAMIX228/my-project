@@ -74,6 +74,16 @@ static func meta(dir: String) -> Dictionary:
 	return result
 
 
+## Всё содержимое meta.json папки как словарь (для особых настроек, например масштаб у каждой башни свой).
+static func meta_raw(dir: String) -> Dictionary:
+	var path := root + dir + "/meta.json"
+	if FileAccess.file_exists(path):
+		var parsed: Variant = JSON.parse_string(FileAccess.get_file_as_string(path))
+		if parsed is Dictionary:
+			return parsed
+	return {}
+
+
 ## Файлы в папке. В собранной игре рядом с картинками лежат .import и .remap, их убираем.
 static func _list(dir: String) -> PackedStringArray:
 	var names := PackedStringArray()

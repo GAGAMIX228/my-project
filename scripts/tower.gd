@@ -38,6 +38,9 @@ func _refresh_art() -> void:
 	if tex == null:
 		return
 	var scale_value := 0.5
+	var scales: Variant = ArtPack.meta_raw("towers").get("scales", {})   # в towers/meta.json: {"scales": {"archer": 0.42}}
+	if scales is Dictionary and scales.has(kind):
+		scale_value = float(scales[kind])
 	_art = Sprite2D.new()
 	_art.texture = tex
 	if ArtPack.pixel_art():

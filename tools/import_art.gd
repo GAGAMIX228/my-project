@@ -64,6 +64,7 @@ func _initialize() -> void:
 		_portrait("heroes/" + id)
 	# рыцари казармы
 	_unit("soldiers/knight", RPG, SOLDIER, 1.6)
+	_towers()
 	print("Импорт закончен: ", ProjectSettings.globalize_path(OUT))
 	quit()
 
@@ -123,3 +124,30 @@ func _portrait(dir: String) -> void:
 	var out := Image.create(128, 128, false, Image.FORMAT_RGBA8)
 	out.blit_rect(top, Rect2i(Vector2i.ZERO, top.get_size()), Vector2i((128 - top.get_width()) / 2, (128 - top.get_height()) / 2))
 	out.save_png(_path(dir + "/portrait.png"))
+
+
+## Башни: здания людей из Tiny Swords. Уровни отличаются цветом: 1 синий, 2 фиолетовый, 3 золотой (жёлтый).
+## Картинка обрезается по контуру (низ здания стоит на площадке). Масштаб у каждой башни свой (towers/meta.json).
+func _towers() -> void:
+	var colors := ["Blue", "Purple", "Yellow"]
+	var buildings := {"archer": "Archery", "barracks": "Barracks", "mage": "Monastery", "mortar": "Tower"}
+	var scales := {"archer": 0.42, "barracks": 0.42, "mage": 0.36, "mortar": 0.45}
+	for kind: String in buildings:
+		for level in 3:
+			var src := Image.load_from_file(ProjectSettings.globalize_path("res://raw_art/tiny_swords_free/Buildings/%s Buildings/%s.png" % [colors[level], buildings[kind]]))
+			var used := src.get_used_rect()
+			var img := src.get_region(used)
+			img.save_png(_path("towers/%s_%d.png" % [kind, level + 1]))
+			if level == 0:
+				_icon("icons/tower_%s.png" % kind, img)
+	_write("towers/meta.json", JSON.stringify({"scales": scales}))
+
+
+## Значок для кнопки: картинка, вписанная в квадрат 128×128 без искажений.
+func _icon(rel: String, src: Image) -> void:
+	var k := minf(124.0 / src.get_width(), 124.0 / src.get_height())
+	var img := src.duplicate()
+	img.resize(maxi(1, int(src.get_width() * k)), maxi(1, int(src.get_height() * k)), Image.INTERPOLATE_NEAREST)
+	var out := Image.create(128, 128, false, Image.FORMAT_RGBA8)
+	out.blit_rect(img, Rect2i(Vector2i.ZERO, img.get_size()), Vector2i((128 - img.get_width()) / 2, 126 - img.get_height()))
+	out.save_png(_path(rel))
