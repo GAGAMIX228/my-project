@@ -1,0 +1,1255 @@
+<!doctype html>
+<html lang="ru">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Локация орков: прототип башенной защиты</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Nunito:wght@400;600;700;800&family=Philosopher:wght@400;700&display=swap">
+<style>
+:root{
+  --bg:#E3ECE6; --panel:#F6FAF7; --ink:#12302A; --ink2:#41615A; --line:#B2C7BE;
+  --accent:#D69A22; --accent-ink:#2A1B00; --danger:#B3372E; --frame:#2E4A3A; --focus:#1B6FD1;
+  box-sizing:border-box;
+  padding-top:env(safe-area-inset-top,0px);
+  padding-bottom:env(safe-area-inset-bottom,0px);
+}
+@media (prefers-color-scheme: dark){
+  :root:not([data-theme="light"]){
+    --bg:#0D1917; --panel:#15282A; --ink:#E4F0EA; --ink2:#9DB8AE; --line:#2B4741;
+    --accent:#E2A93C; --accent-ink:#241700; --danger:#E5675C; --frame:#02100B; --focus:#6AB0FF;
+  }
+}
+:root[data-theme="dark"]{
+  --bg:#0D1917; --panel:#15282A; --ink:#E4F0EA; --ink2:#9DB8AE; --line:#2B4741;
+  --accent:#E2A93C; --accent-ink:#241700; --danger:#E5675C; --frame:#02100B; --focus:#6AB0FF;
+}
+html{scroll-padding-top:env(safe-area-inset-top,0px);height:100%}
+*,*::before,*::after{box-sizing:inherit}
+[hidden]{display:none!important}
+body{margin:0;min-height:100%;background:var(--bg);color:var(--ink);font:400 16px/1.5 'Nunito',system-ui,-apple-system,'Segoe UI',sans-serif;-webkit-text-size-adjust:100%}
+.page{max-width:1040px;margin:0 auto;padding:18px max(14px,env(safe-area-inset-right,0px)) 40px max(14px,env(safe-area-inset-left,0px))}
+h1,h2,h3{font-family:'Philosopher',Georgia,'Times New Roman',serif;font-weight:700;margin:0;line-height:1.15}
+h1{font-size:clamp(1.7rem,4.2vw,2.5rem)}
+h2{font-size:1.25rem;margin-bottom:.4rem}
+h3{font-size:1.2rem;display:flex;gap:.7rem;align-items:baseline;margin:22px 0 10px}
+h3 span{font:600 .9rem 'Nunito',system-ui,sans-serif;color:var(--ink2)}
+.lead{margin:.35rem 0 14px;color:var(--ink2);max-width:62ch}
+
+/* сборка перед боем */
+.cards{display:grid;grid-template-columns:repeat(auto-fill,minmax(min(100%,215px),1fr));gap:10px}
+.pick{display:grid;grid-template-columns:auto 1fr;gap:1px 10px;align-items:center;text-align:left;font:inherit;color:inherit;padding:10px 12px;border:2px solid var(--line);border-radius:12px;background:var(--panel);cursor:pointer;min-height:44px}
+.pick:hover{border-color:var(--accent)}
+.pick[aria-pressed="true"]{border-color:var(--accent);box-shadow:0 0 0 3px color-mix(in srgb,var(--accent) 45%,transparent)}
+.pick .dot{grid-row:1/3;width:26px;height:26px;border-radius:50%;border:2px solid rgba(0,0,0,.35)}
+.pick .pname{font-weight:800}
+.pick .prole{font-size:.82rem;color:var(--ink2)}
+.pick .pab{grid-column:1/-1;font-size:.85rem;color:var(--ink2);margin-top:6px}
+.pick .pab b{color:var(--ink)}
+.prepfoot{display:flex;flex-wrap:wrap;gap:12px;align-items:center;margin-top:22px}
+.prepfoot p{margin:0;color:var(--ink2);font-size:.9rem;max-width:56ch}
+
+/* игра */
+.stage{position:relative;aspect-ratio:960/540;border:3px solid var(--frame);border-radius:14px;overflow:hidden;background:#5f9646;user-select:none;-webkit-user-select:none}
+.stage canvas{display:block;width:100%;height:100%;touch-action:manipulation;cursor:pointer}
+.stage.aiming canvas{cursor:crosshair}
+.hud{position:absolute;top:10px;left:10px;display:flex;gap:6px;flex-wrap:wrap;pointer-events:none}
+.chip{display:flex;align-items:center;gap:.4rem;background:rgba(15,25,19,.8);color:#fff;padding:.25rem .7rem .25rem .55rem;border-radius:999px;font:800 .95rem 'Nunito',system-ui,sans-serif;font-variant-numeric:tabular-nums}
+.chip svg{width:18px;height:18px;flex:none}
+.toast{position:absolute;left:50%;top:12px;transform:translateX(-50%);max-width:80%;background:rgba(15,25,19,.86);color:#fff;padding:.4rem .9rem;border-radius:999px;font-weight:700;font-size:.92rem;text-align:center;opacity:0;transition:opacity .18s;pointer-events:none}
+.toast.on{opacity:1}
+.menu{position:absolute;z-index:5;width:min(252px,88%);background:var(--panel);color:var(--ink);border:2px solid var(--line);border-radius:12px;padding:9px 9px 10px;box-shadow:0 10px 26px rgba(0,0,0,.4)}
+.mtitle{font:700 1.08rem 'Philosopher',Georgia,serif}
+.minfo{font-size:.85rem;color:var(--ink2);margin-top:3px}
+.opt{display:grid;grid-template-columns:1fr auto;gap:0 10px;align-items:baseline;width:100%;text-align:left;font:inherit;color:inherit;padding:8px 10px;margin-top:6px;border-radius:9px;border:1px solid var(--line);background:transparent;cursor:pointer;min-height:44px}
+.opt:hover{border-color:var(--accent)}
+.opt[data-poor]{opacity:.5}
+.oname{font-weight:700}
+.ocost{font-weight:800;font-variant-numeric:tabular-nums}
+.ocost::before{content:"";display:inline-block;width:.68em;height:.68em;border-radius:50%;background:#F0B93A;border:1.5px solid #A0710F;margin-right:.3em;vertical-align:-.04em}
+.oinfo{grid-column:1/-1;font-size:.8rem;color:var(--ink2)}
+.opt.sell .oname{color:var(--danger)}
+.end{position:absolute;inset:0;display:grid;place-items:center;background:rgba(8,16,12,.62);z-index:8}
+.card{background:var(--panel);color:var(--ink);border-radius:16px;padding:22px 26px;text-align:center;max-width:min(340px,88%);border:2px solid var(--line)}
+.card h2{font-size:1.7rem}
+.stars{display:flex;justify-content:center;gap:6px;margin:10px 0 6px}
+.stars svg{width:40px;height:40px}
+.card p{margin:.3rem 0 14px;color:var(--ink2)}
+.controls{display:flex;flex-wrap:wrap;gap:10px 22px;margin-top:12px;align-items:flex-start}
+.group{display:flex;flex-wrap:wrap;gap:8px;align-items:center}
+.btn{position:relative;overflow:hidden;font:700 .95rem 'Nunito',system-ui,sans-serif;min-height:44px;padding:.5rem .95rem;border-radius:11px;border:2px solid var(--line);background:var(--panel);color:var(--ink);cursor:pointer}
+.btn:hover{border-color:var(--accent)}
+.btn.primary{background:var(--accent);color:var(--accent-ink);border-color:transparent}
+.btn.armed{border-color:var(--accent);box-shadow:0 0 0 3px color-mix(in srgb,var(--accent) 45%,transparent)}
+.btn[disabled]{opacity:.5;cursor:not-allowed}
+.btn .cd{position:absolute;inset:0;background:rgba(10,20,16,.42);transform-origin:bottom;transform:scaleY(var(--cd,0));pointer-events:none}
+.btn .lbl{position:relative}
+.key{font-weight:600;opacity:.6;font-size:.8em;margin-left:.45em}
+.btn:focus-visible,.opt:focus-visible,.pick:focus-visible,.hsel:focus-visible{outline:3px solid var(--focus);outline-offset:2px}
+.hcard{display:flex;align-items:center;gap:8px;padding:6px 8px;border:2px solid var(--line);border-radius:12px;background:var(--panel);flex-wrap:wrap}
+.hcard.sel{border-color:var(--accent);box-shadow:0 0 0 3px color-mix(in srgb,var(--accent) 45%,transparent)}
+.hsel{font:800 .95rem 'Nunito',system-ui,sans-serif;background:none;border:0;color:var(--ink);cursor:pointer;padding:.3rem .2rem;min-height:44px;display:flex;align-items:center;gap:.45rem}
+.hsel .dot{width:16px;height:16px;border-radius:50%;border:2px solid rgba(0,0,0,.35)}
+.bar{width:84px;height:10px;border-radius:6px;background:var(--line);overflow:hidden}
+.bar i{display:block;height:100%;width:var(--f,100%);background:#4da35a;transition:width .1s}
+.ht{font-size:.82rem;color:var(--ink2);min-width:5.5em}
+.waveinfo{margin:.7rem 0 0;color:var(--ink2);font-size:.92rem;min-height:1.4em}
+.notes{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,320px),1fr));gap:22px;margin-top:26px}
+.notes ul{margin:0;padding-left:1.1rem;color:var(--ink2)}
+.notes li{margin:.35rem 0;max-width:62ch}
+@media (prefers-reduced-motion: reduce){.toast,.bar i{transition:none}}
+</style>
+</head>
+<body>
+<main class="page">
+  <h1>Локация орков</h1>
+
+  <!-- ЭКРАН СБОРКИ -->
+  <section id="prep">
+    <p class="lead">Перед боем выбери двух героев и три заклинания. В прототипе открыто всё, чтобы можно было попробовать каждого.</p>
+    <h3>Герои <span id="heroCount"></span></h3>
+    <div class="cards" id="heroCards"></div>
+    <h3>Заклинания <span id="spellCount"></span></h3>
+    <div class="cards" id="spellCards"></div>
+    <div class="prepfoot">
+      <button class="btn primary" id="go" type="button">В бой</button>
+      <p id="goHint"></p>
+    </div>
+  </section>
+
+  <!-- ЭКРАН ИГРЫ -->
+  <section id="play" hidden>
+    <p class="lead">Десять волн орков и четыре башни людей. Цифры пробные, их можно менять по ходу игры.</p>
+    <div class="stage" id="stage">
+      <canvas id="game" role="img" aria-label="Игровое поле: дорога, по которой идут орки, и каменные площадки для башен"></canvas>
+      <div class="hud" aria-hidden="true">
+        <div class="chip" title="Жизни">
+          <svg viewBox="0 0 24 24"><path fill="#E5584E" d="M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09C13.09 3.81 14.76 3 16.5 3 19.58 3 22 5.42 22 8.5c0 3.78-3.4 6.86-8.55 11.54L12 21.35z"/></svg>
+          <span id="hudLives">20</span>
+        </div>
+        <div class="chip" title="Золото">
+          <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="9" fill="#F0B93A" stroke="#A0710F" stroke-width="2"/><circle cx="12" cy="12" r="4.5" fill="none" stroke="#A0710F" stroke-width="1.6"/></svg>
+          <span id="hudGold">220</span>
+        </div>
+        <div class="chip" title="Волна">
+          <svg viewBox="0 0 24 24"><path d="M6 3v18" stroke="#fff" stroke-width="2.2" stroke-linecap="round"/><path d="M6 4.5h12l-2.6 4 2.6 4H6z" fill="#D9603B"/></svg>
+          <span id="hudWave">Волна 0 из 10</span>
+        </div>
+      </div>
+      <div class="toast" id="toast" role="status" aria-live="polite"></div>
+      <div class="menu" id="menu" hidden></div>
+      <div class="end" id="end" hidden>
+        <div class="card">
+          <h2 id="endTitle"></h2>
+          <div class="stars" id="endStars" aria-hidden="true"></div>
+          <p id="endText"></p>
+          <button class="btn primary" id="again" type="button">Новая сборка и бой</button>
+        </div>
+      </div>
+    </div>
+
+    <p class="waveinfo" id="waveInfo"></p>
+
+    <div class="controls" id="controls">
+      <div class="group">
+        <button class="btn primary" id="btnWave" type="button"><span class="lbl">Запустить волну<span class="key">Пробел</span></span></button>
+        <button class="btn" id="btnSpeed" type="button"><span class="lbl">Скорость ×1</span></button>
+        <button class="btn" id="btnPause" type="button"><span class="lbl">Пауза</span></button>
+      </div>
+      <div class="group" id="spellBar"></div>
+      <div class="group" id="heroBar"></div>
+      <div class="group"><button class="btn" id="btnPrep" type="button"><span class="lbl">Сменить героев и заклинания</span></button></div>
+    </div>
+
+    <div class="notes">
+      <section>
+        <h2>Как играть</h2>
+        <ul>
+          <li>Нажми на каменную площадку у дороги, чтобы построить башню. Нажми на построенную башню, чтобы улучшить или продать её.</li>
+          <li>Когда выбрана казарма, вокруг неё появляется синий круг. Нажми внутри круга, и рыцари перейдут в это место.</li>
+          <li>Нажми на карточку героя или на самого героя, чтобы выбрать его. Потом нажми на землю, и он пойдёт туда. Способность героя включается своей кнопкой.</li>
+          <li>Заклинание выбирают кнопкой, потом нажимают на карту. Землетрясение действует сразу. Клавиши: 1, 2, 3 для заклинаний, 4 и 5 для героев, пробел для волны, Esc для отмены.</li>
+        </ul>
+      </section>
+      <section>
+        <h2>Что здесь условно</h2>
+        <ul>
+          <li>Урон, здоровье и цены взяты для пробы. Если что-то слишком легко или слишком трудно, это можно подкрутить.</li>
+          <li>Метеориты наносят чистый урон, чтобы проверить этот тип на деле. В дизайн-документе вопрос про чистый урон пока открыт.</li>
+          <li>Драконы летают, и орки их не трогают, поэтому «цена» для драконов пока не работает.</li>
+          <li>Звёзды в конце: одна за победу, две при десяти жизнях и больше, три при восемнадцати и больше.</li>
+        </ul>
+      </section>
+    </div>
+  </section>
+</main>
+
+<script>
+(() => {
+'use strict';
+
+/* ---------- базовые вещи ---------- */
+const W = 960, H = 540;
+const $ = (id) => document.getElementById(id);
+const clamp = (v, a, b) => Math.max(a, Math.min(b, v));
+const hyp = Math.hypot;
+const rnd = (a, b) => a + Math.random() * (b - a);
+function mulberry(a) { return function () { a |= 0; a = a + 0x6D2B79F5 | 0; let t = Math.imul(a ^ a >>> 15, 1 | a); t = t + Math.imul(t ^ t >>> 7, 61 | t) ^ t; return ((t ^ t >>> 14) >>> 0) / 4294967296; }; }
+
+const canvas = $('game'), ctx = canvas.getContext('2d');
+const stage = $('stage'), menu = $('menu');
+
+/* ---------- карта ---------- */
+const PATH = [[-30, 130], [170, 130], [170, 400], [420, 400], [420, 150], [690, 150], [690, 420], [990, 420]];
+const PADS = [[95, 265], [245, 215], [300, 340], [300, 470], [350, 240], [495, 270], [555, 85], [555, 215], [625, 300], [765, 300], [850, 350]];
+const seg = []; let total = 0;
+for (let i = 0; i < PATH.length - 1; i++) {
+  const [x1, y1] = PATH[i], [x2, y2] = PATH[i + 1];
+  const len = hyp(x2 - x1, y2 - y1);
+  seg.push({ x1, y1, x2, y2, len, start: total, dx: (x2 - x1) / len, dy: (y2 - y1) / len });
+  total += len;
+}
+function posAt(d) {
+  d = clamp(d, 0, total);
+  for (const s of seg) if (d <= s.start + s.len) { const t = d - s.start; return { x: s.x1 + s.dx * t, y: s.y1 + s.dy * t, dx: s.dx, dy: s.dy }; }
+  const s = seg[seg.length - 1]; return { x: s.x2, y: s.y2, dx: s.dx, dy: s.dy };
+}
+function nearestOnPath(x, y) {
+  let best = null;
+  for (const s of seg) {
+    const t = clamp((x - s.x1) * s.dx + (y - s.y1) * s.dy, 0, s.len);
+    const px = s.x1 + s.dx * t, py = s.y1 + s.dy * t, d = hyp(px - x, py - y);
+    if (!best || d < best.d) best = { x: px, y: py, d, dist: s.start + t, dx: s.dx, dy: s.dy };
+  }
+  return best;
+}
+
+/* ---------- башни ---------- */
+const TOWER = {
+  archer:   { name: 'Лучники',         cost: 70,  blurb: 'Быстрые стрелы, физический урон, бьют и по воздуху' },
+  barracks: { name: 'Казарма рыцарей', cost: 90,  blurb: 'Рыцари перекрывают дорогу' },
+  mage:     { name: 'Башня магов',     cost: 100, blurb: 'Магия, игнорирует броню, бьёт и по воздуху' },
+  mortar:   { name: 'Мортира',         cost: 120, blurb: 'Медленно, урон по площади, только по земле' }
+};
+const ORDER = ['archer', 'barracks', 'mage', 'mortar'];
+const TSTAT = {
+  archer: [null, { dmg: 8, range: 150, rate: .7 }, { dmg: 12, range: 160, rate: .65 }, { dmg: 17, range: 172, rate: .6 }],
+  mage:   [null, { dmg: 18, range: 135, rate: 1.2 }, { dmg: 30, range: 145, rate: 1.1 }, { dmg: 46, range: 155, rate: 1 }],
+  mortar: [null, { dmg: 26, range: 185, min: 50, rate: 2.5, splash: 46 }, { dmg: 40, range: 195, min: 50, rate: 2.3, splash: 52 }, { dmg: 60, range: 205, min: 50, rate: 2.1, splash: 58 }]
+};
+const BAR = [null, { n: 2, hp: 70, dmg: 6, rate: .85, range: 115 }, { n: 2, hp: 105, dmg: 9, rate: .8, range: 128 }, { n: 3, hp: 140, dmg: 13, rate: .75, range: 140 }];
+const UPG = { archer: [60, 110], barracks: [70, 120], mage: [80, 140], mortar: [90, 150] };
+
+/* ---------- враги ---------- */
+const ETYPES = {
+  grunt:   { name: 'Орк-воин',        hp: 82,   speed: 55, armor: 0,   mres: 0,   gold: 6,   r: 11, atk: 5,  leak: 1 },
+  raider:  { name: 'Волчий наездник', hp: 51,   speed: 97, armor: 0,   mres: 0,   gold: 5,   r: 9,  atk: 3,  leak: 1 },
+  shield:  { name: 'Орк-щитоносец',   hp: 234,  speed: 44, armor: .5,  mres: 0,   gold: 14,  r: 13, atk: 7,  leak: 2 },
+  berserk: { name: 'Орк-берсерк',     hp: 195,  speed: 47, armor: .1,  mres: 0,   gold: 13,  r: 12, atk: 8,  leak: 2 },
+  shaman:  { name: 'Орк-шаман',       hp: 124,  speed: 46, armor: 0,   mres: 0,   gold: 16,  r: 11, atk: 3,  leak: 1 },
+  warlock: { name: 'Орк-колдун',      hp: 143,  speed: 50, armor: 0,   mres: .65, gold: 14,  r: 11, atk: 6,  leak: 1 },
+  gryph:   { name: 'Орк на грифе',    hp: 98,   speed: 88, armor: 0,   mres: 0,   gold: 12,  r: 11, atk: 0,  leak: 2, fly: true },
+  chief:   { name: 'Вождь орков',     hp: 1755, speed: 34, armor: .35, mres: .2,  gold: 120, r: 19, atk: 16, leak: 5 }
+};
+const WAVES = [
+  [['grunt', 6, 1.3]],
+  [['grunt', 8, 1.0], ['raider', 3, .8]],
+  [['raider', 8, .75], ['grunt', 5, 1.0]],
+  [['shield', 3, 2.2], ['grunt', 9, .9]],
+  [['gryph', 5, 1.3], ['grunt', 8, .9]],
+  [['warlock', 4, 1.8], ['shield', 3, 1.8], ['raider', 6, .6]],
+  [['berserk', 4, 1.8], ['grunt', 10, .7], ['shaman', 2, 1.8]],
+  [['gryph', 8, .9], ['shield', 5, 1.4], ['warlock', 3, 1.6]],
+  [['berserk', 6, 1.3], ['shaman', 3, 1.5], ['shield', 6, 1.3], ['raider', 8, .5]],
+  [['chief', 1, 1], ['berserk', 3, 1.5], ['shaman', 3, 1.5], ['gryph', 5, 1.0], ['shield', 4, 1.3]]
+];
+const ENEMY_NOTE = {
+  grunt: 'толпа', raider: 'быстрые', shield: 'физическая броня', berserk: 'бесится при малом здоровье',
+  shaman: 'лечит орков рядом', warlock: 'почти не боится магии', gryph: 'летает', chief: 'босс'
+};
+
+/* ---------- герои ---------- */
+const HEROES = {
+  edrik:  { name: 'Эдрик', role: 'Рыцарь', kind: 'melee', look: 'knight', color: '#4a78c4', hp: 220, dmg: 12, rate: .7, speed: 110, engage: 100, r: 11, respawn: 12,
+            ab: { name: 'Рывок щитом', cd: 14, info: 'Бросается на ближайшего врага, оглушает и бьёт всех рядом' } },
+  grum:   { name: 'Грум', role: 'Огр-страж', kind: 'melee', look: 'ogre', color: '#b58542', hp: 340, dmg: 20, rate: 1.1, speed: 85, engage: 95, r: 14, respawn: 14,
+            ab: { name: 'Удар о землю', cd: 16, info: 'Оглушает всех наземных врагов вокруг' } },
+  kara:   { name: 'Кара', role: 'Орк-берсерк', kind: 'melee', look: 'orc', color: '#5f9440', hp: 180, dmg: 10, rate: .55, speed: 120, engage: 100, r: 11, respawn: 12,
+            ab: { name: 'Ярость', cd: 18, info: 'На 8 секунд бьёт быстрее и сильнее. Чем меньше здоровья, тем сильнее удары' } },
+  tarn:   { name: 'Тарн', role: 'Следопыт', kind: 'ranged', look: 'ranger', color: '#4f9a55', hp: 130, dmg: 13, rate: .85, range: 170, speed: 105, r: 10, respawn: 12, shot: 'arrow', dtype: 'phys',
+            ab: { name: 'Точный выстрел', cd: 11, info: 'Огромный урон самому живучему врагу рядом' } },
+  xol:    { name: 'Ксол', role: 'Маг глубин', kind: 'ranged', look: 'mage', color: '#2a9fb5', hp: 110, dmg: 15, rate: 1, range: 155, speed: 100, r: 10, respawn: 12, shot: 'orb', dtype: 'magic', col: '#7fe0ff',
+            ab: { name: 'Ледяной шквал', cd: 14, info: 'Урон по площади и заморозка' } },
+  ishta:  { name: 'Ишта', role: 'Шаманка предков', kind: 'ranged', look: 'shaman', color: '#8b5fc0', hp: 110, dmg: 11, rate: .9, range: 155, speed: 100, r: 10, respawn: 12, shot: 'orb', dtype: 'magic', col: '#d9b8ff',
+            ab: { name: 'Призыв духов', cd: 20, info: 'Три духа сражаются рядом 10 секунд' } },
+  ashgar: { name: 'Ашгар', role: 'Огненный дракон', kind: 'dragon', look: 'dragon', color: '#e2662a', hp: 200, dmg: 14, rate: .8, range: 135, speed: 150, r: 14, respawn: 18, shot: 'orb', dtype: 'magic', col: '#ff9a3a',
+            ab: { name: 'Огненный шторм', cd: 16, info: 'Огонь по площади, враги горят несколько секунд' } },
+  morven: { name: 'Морвен', role: 'Костяной дракон', kind: 'dragon', look: 'dragon', color: '#cfc9b3', hp: 200, dmg: 16, rate: .9, range: 115, speed: 150, r: 14, respawn: 18, shot: 'orb', dtype: 'pure', col: '#b9ffd0',
+            ab: { name: 'Жатва душ', cd: 14, info: 'Отнимает здоровье у врагов рядом и лечит себя' } },
+  zefira: { name: 'Зефира', role: 'Драконица-маг', kind: 'dragon', look: 'dragon', color: '#5db6e8', hp: 180, dmg: 13, rate: .8, range: 170, speed: 150, r: 14, respawn: 18, shot: 'orb', dtype: 'magic', col: '#c8f0ff',
+            ab: { name: 'Ураган', cd: 15, info: 'Отбрасывает наземных врагов назад по дороге' } }
+};
+const HERO_ORDER = ['edrik', 'grum', 'kara', 'tarn', 'xol', 'ishta', 'ashgar', 'morven', 'zefira'];
+const KIND_TEXT = { melee: 'ближний бой', ranged: 'дальний бой', dragon: 'летает' };
+
+/* ---------- заклинания ---------- */
+const SPELLS = {
+  knights:   { name: 'Призыв рыцарей',  race: 'Люди',      cd: 22, aim: 'road', info: 'Два рыцаря на дороге на 16 секунд' },
+  meteors:   { name: 'Метеориты',       race: 'Люди',      cd: 45, aim: 'area', r: 62,  info: 'Шесть метеоритов, чистый урон по земле' },
+  reinforce: { name: 'Подкрепление',    race: 'Орки',      cd: 18, aim: 'road', info: 'Три орка-бойца на дороге на 14 секунд' },
+  quake:     { name: 'Землетрясение',   race: 'Огры',      cd: 50, aim: 'none',            info: 'Оглушает всех наземных врагов на 2 секунды' },
+  frost:     { name: 'Ледяная буря',    race: 'Йети',      cd: 35, aim: 'area', r: 90,  info: 'Враги в зоне замерзают на 3 секунды' },
+  wrath:     { name: 'Гнев предков',    race: 'Шаманы',    cd: 28, aim: 'area', r: 80,  info: 'Волна света: магический урон по области' },
+  wave:      { name: 'Волна глубин',    race: 'Осьминоги', cd: 30, aim: 'area', r: 110, info: 'Отбрасывает наземных врагов назад по дороге' },
+  fireball:  { name: 'Огненный метеор', race: 'Драконы',   cd: 50, aim: 'area', r: 75,  info: 'Большой урон по площади, враги горят' }
+};
+const SPELL_ORDER = ['knights', 'meteors', 'reinforce', 'quake', 'frost', 'wrath', 'wave', 'fireball'];
+
+let LOAD = { heroes: ['edrik', 'tarn'], spells: ['knights', 'meteors', 'frost'] };
+
+/* ---------- состояние ---------- */
+let S = null, bg = null, dpr = 1, inPlay = false;
+const mouse = { x: -99, y: -99 };
+const ey = (e) => e.fly ? e.y - 24 : e.y;
+
+function makeSoldier(o) {
+  return Object.assign({ x: 0, y: 0, post: { x: 0, y: 0 }, hp: 60, max: 60, dmg: 6, rate: .85, cd: 0, target: null, dead: false, respawn: 0, engage: 85, speed: 95, r: 9, temp: false, life: 0, hero: false, owner: null, face: 1, swing: 0, hurt: 0, gone: false, col: '#4a78c4', rageT: 0 }, o);
+}
+function makeHero(id, x, y) {
+  const d = HEROES[id];
+  return makeSoldier({ hero: true, hid: id, def: d, x, y, post: { x, y }, hp: d.hp, max: d.hp, dmg: d.dmg, rate: d.rate, engage: d.engage || 90, r: d.r, speed: d.speed, fly: d.kind === 'dragon' });
+}
+function newGame() {
+  const a = nearestOnPath(300, 400), b = nearestOnPath(420, 280);
+  S = {
+    t: 0, gold: 220, lives: 20, wave: 0, queue: [], enemies: [], soldiers: [], towers: [], projs: [], fx: [], meteors: [],
+    kills: 0, over: null, speed: 1, paused: false, spell: null, sel: null, hoverPad: null, menuKey: '',
+    pads: PADS.map(([x, y], i) => ({ x, y, i, tower: null })),
+    scd: {}, hcd: [0, 0], selHero: 0, msg: { text: '', t: 0 }
+  };
+  for (const id of SPELL_ORDER) S.scd[id] = 0;
+  S.heroes = [makeHero(LOAD.heroes[0], a.x, a.y), makeHero(LOAD.heroes[1], b.x, b.y)];
+  for (const h of S.heroes) S.soldiers.push(h);
+  closeMenu();
+  say('Построй башни на каменных площадках и запусти волну');
+}
+function say(text) { if (S) S.msg = { text, t: 2.4 }; }
+function ring(x, y, max, color, dur) { S.fx.push({ k: 'ring', x, y, max, color: color || '#fff', t: 0, dur: dur || .35 }); }
+function floatText(x, y, txt, color) { S.fx.push({ k: 'text', x, y, txt, color: color || '#ffe27a', t: 0, dur: .9 }); }
+
+/* ---------- урон ---------- */
+function hurt(e, dmg, type, quiet) {
+  if (e.dead) return;
+  let d = dmg;
+  if (type === 'phys') d *= 1 - e.armor;
+  else if (type === 'magic') d *= 1 - e.mres;
+  e.hp -= d;
+  if (!quiet) e.flash = .09;
+  if (e.hp <= 0) {
+    e.dead = true; S.gold += e.gold; S.kills++;
+    floatText(e.x, ey(e) - e.r - 8, '+' + e.gold);
+  }
+}
+function areaHit(x, y, r, fn, air) {
+  for (const e of S.enemies) {
+    if (e.dead || (e.fly && !air)) continue;
+    if (hyp(e.x - x, ey(e) - y) <= r + e.r) fn(e);
+  }
+}
+function explode(x, y, r, dmg, type, color) {
+  areaHit(x, y, r, (e) => { const d = hyp(e.x - x, e.y - y); hurt(e, dmg * (1 - Math.min(1, d / (r + e.r)) * .4), type); }, false);
+  ring(x, y, r, color || '#ffd27a', .4);
+}
+function killSoldier(s) {
+  s.dead = true; s.target = null;
+  if (s.temp) { s.gone = true; s.respawn = 0; } else s.respawn = s.hero ? s.def.respawn : 9;
+  ring(s.x, s.y, 18, '#9db8ff', .3);
+}
+
+/* ---------- волны и враги ---------- */
+function spawn(type) {
+  const d = ETYPES[type], p = posAt(0);
+  S.enemies.push({ type, x: p.x, y: p.y, dist: 0, hp: d.hp, max: d.hp, speed: d.speed, armor: d.armor, mres: d.mres, gold: d.gold, r: d.r, atk: d.atk, leak: d.leak, fly: !!d.fly, blocker: null, stun: 0, ice: 0, burn: 0, burnDps: 0, healT: 1.5, atkCd: .5, dead: false, flash: 0, face: 1, ph: Math.random() * 6 });
+}
+function canStartWave() { return !S.over && S.wave < WAVES.length && S.queue.length === 0; }
+function startWave() {
+  if (!canStartWave()) return false;
+  const early = S.enemies.some(e => !e.dead);
+  let t = S.t + .4;
+  for (const [type, n, gap] of WAVES[S.wave]) {
+    for (let i = 0; i < n; i++) { S.queue.push({ t, type }); t += gap; }
+    t += 2.2;
+  }
+  S.queue.sort((a, b) => a.t - b.t);
+  S.wave++;
+  if (early) { S.gold += 15; say('Досрочный вызов: +15 золота'); }
+  else say('Волна ' + S.wave + ' идёт');
+  return true;
+}
+function updateEnemy(e, dt) {
+  if (e.flash > 0) e.flash -= dt;
+  if (e.ice > 0) e.ice -= dt;
+  if (e.burn > 0) { e.burn -= dt; hurt(e, e.burnDps * dt, 'magic', true); if (e.dead) return; }
+  if (e.type === 'shaman') {
+    e.healT -= dt;
+    if (e.healT <= 0) {
+      e.healT = 2.4; let any = false;
+      for (const o of S.enemies) if (o !== e && !o.dead && o.hp < o.max && hyp(o.x - e.x, o.y - e.y) < 100) { o.hp = Math.min(o.max, o.hp + o.max * .12); any = true; }
+      if (any) ring(e.x, e.y, 100, '#7bd88f', .5);
+    }
+  }
+  if (e.blocker && e.blocker.dead) e.blocker = null;
+  if (e.stun > 0) { e.stun -= dt; return; }
+  const enr = e.type === 'berserk' && e.hp < e.max * .5;
+  const b = e.fly ? null : e.blocker;
+  if (b && hyp(e.x - b.x, e.y - b.y) < 28) {
+    e.face = b.x < e.x ? -1 : 1;
+    e.atkCd -= dt;
+    if (e.atkCd <= 0) { e.atkCd = enr ? .7 : 1; b.hp -= e.atk * (enr ? 1.5 : 1); b.hurt = .12; if (b.hp <= 0) killSoldier(b); }
+    return;
+  }
+  const sp = e.speed * (enr ? 1.7 : 1);
+  e.dist += sp * dt; e.ph += dt * sp / 9;
+  const p = posAt(e.dist); e.x = p.x; e.y = p.y; e.face = p.dx >= 0 ? 1 : -1;
+  if (e.dist >= total) { e.dead = true; S.lives -= e.leak; ring(e.x - 30, e.y, 30, '#ff6a5a', .5); say('Орк прорвался: −' + e.leak + (e.leak > 1 ? ' жизни' : ' жизнь')); }
+}
+
+/* ---------- бойцы и герои ---------- */
+function melee(s) {
+  let dmg = s.dmg, rate = s.rate;
+  if (s.hid === 'kara') {
+    const m = 1 + (1 - s.hp / s.max) * .9;
+    dmg *= m; rate /= m;
+    if (s.rageT > 0) { dmg *= 1.4; rate *= .7; }
+  }
+  return { dmg, rate };
+}
+function updateShooter(s, dt) {
+  s.cd -= dt;
+  const dx = s.post.x - s.x, dy = s.post.y - s.y, d = hyp(dx, dy);
+  if (d > 1.5) { const st = Math.min(d, s.speed * dt); s.x += dx / d * st; s.y += dy / d * st; s.face = dx >= 0 ? 1 : -1; }
+  s.hp = Math.min(s.max, s.hp + 3 * dt);
+  if (s.cd > 0) return;
+  let best = null;
+  for (const e of S.enemies) {
+    if (e.dead) continue;
+    if (hyp(e.x - s.x, ey(e) - s.y) <= s.def.range && (!best || e.dist > best.dist)) best = e;
+  }
+  if (!best) return;
+  s.cd = s.def.rate; s.swing = .15; s.face = best.x >= s.x ? 1 : -1;
+  const arrow = s.def.shot === 'arrow';
+  S.projs.push({ k: arrow ? 'arrow' : 'orb', x: s.x, y: s.y - (s.fly ? 22 : 12), target: best, tx: best.x, ty: ey(best), sp: arrow ? 520 : 360, dmg: s.def.dmg, dt: s.def.dtype, ang: 0, col: s.def.col });
+}
+function updateSoldier(s, dt) {
+  if (s.hurt > 0) s.hurt -= dt;
+  if (s.swing > 0) s.swing -= dt;
+  if (s.rageT > 0) s.rageT -= dt;
+  if (s.dead) {
+    if (!s.temp && s.respawn > 0) {
+      s.respawn -= dt;
+      if (s.respawn <= 0) { s.respawn = 0; s.dead = false; s.hp = s.max; s.x = s.post.x; s.y = s.post.y; ring(s.x, s.y, 20, '#bcd4ff', .35); }
+    }
+    return;
+  }
+  if (s.temp) { s.life -= dt; if (s.life <= 0) { s.dead = true; s.gone = true; s.target = null; return; } }
+  if (s.hero && s.def.kind !== 'melee') { updateShooter(s, dt); return; }
+  s.cd -= dt;
+  if (s.target && (s.target.dead || s.target.blocker !== s || hyp(s.target.x - s.post.x, s.target.y - s.post.y) > s.engage * 1.7)) {
+    if (s.target.blocker === s) s.target.blocker = null;
+    s.target = null;
+  }
+  if (!s.target) {
+    let best = null, bd = 1e9;
+    for (const e of S.enemies) {
+      if (e.dead || e.fly || (e.blocker && !e.blocker.dead)) continue;
+      const d = hyp(e.x - s.post.x, e.y - s.post.y);
+      if (d < s.engage && d < bd) { best = e; bd = d; }
+    }
+    if (best) { s.target = best; best.blocker = s; }
+  }
+  if (s.target) {
+    const e = s.target, dx = e.x - s.x, dy = e.y - s.y, d = hyp(dx, dy);
+    s.face = dx >= 0 ? 1 : -1;
+    if (d > 22) { const st = Math.min(d - 20, s.speed * dt); s.x += dx / d * st; s.y += dy / d * st; }
+    else if (s.cd <= 0) { const m = melee(s); s.cd = m.rate; s.swing = .18; hurt(e, m.dmg, 'phys'); }
+  } else {
+    const dx = s.post.x - s.x, dy = s.post.y - s.y, d = hyp(dx, dy);
+    if (d > 1.5) { const st = Math.min(d, s.speed * dt); s.x += dx / d * st; s.y += dy / d * st; s.face = dx >= 0 ? 1 : -1; }
+    s.hp = Math.min(s.max, s.hp + (s.hero ? 4 : 2) * dt);
+  }
+}
+
+/* ---------- башни ---------- */
+function rallyOffsets(n) { return n === 2 ? [[-13, 0], [13, 0]] : [[-19, 5], [0, -8], [19, 5]]; }
+function placeRally(t, x, y) {
+  const dx = x - t.x, dy = y - t.y, d = hyp(dx, dy), lim = t.range - 6;
+  if (d > lim) { x = t.x + dx / d * lim; y = t.y + dy / d * lim; }
+  x = clamp(x, 14, W - 14); y = clamp(y, 14, H - 14);
+  t.rally = { x, y };
+  const offs = rallyOffsets(BAR[t.level].n);
+  t.soldiers.forEach((s, i) => { const o = offs[i] || [0, 0]; s.post = { x: x + o[0], y: y + o[1] }; });
+}
+function syncBarracks(t) {
+  const st = BAR[t.level];
+  t.range = st.range;
+  while (t.soldiers.length < st.n) {
+    const s = makeSoldier({ owner: t, x: t.x, y: t.y + 8 });
+    t.soldiers.push(s); S.soldiers.push(s);
+  }
+  for (const s of t.soldiers) { s.max = st.hp; s.hp = st.hp; s.dmg = st.dmg; s.rate = st.rate; }
+  placeRally(t, t.rally.x, t.rally.y);
+}
+function build(i, type) {
+  const p = S.pads[i];
+  if (!p || p.tower) return false;
+  const def = TOWER[type];
+  if (S.gold < def.cost) { say('Не хватает золота'); return false; }
+  S.gold -= def.cost;
+  const t = { type, x: p.x, y: p.y, pad: i, level: 1, cd: .3, invested: def.cost, soldiers: [], angle: -1.2, recoil: 0 };
+  p.tower = t; S.towers.push(t);
+  if (type === 'barracks') { const n = nearestOnPath(t.x, t.y); t.range = BAR[1].range; t.rally = { x: n.x, y: n.y }; syncBarracks(t); }
+  ring(p.x, p.y, 30, '#fff', .35);
+  return true;
+}
+function upgrade(t) {
+  if (!t || t.level >= 3) return false;
+  const cost = UPG[t.type][t.level - 1];
+  if (S.gold < cost) { say('Не хватает золота'); return false; }
+  S.gold -= cost; t.invested += cost; t.level++;
+  if (t.type === 'barracks') syncBarracks(t);
+  ring(t.x, t.y, 34, '#ffe27a', .4);
+  return true;
+}
+function sell(t) {
+  if (!t) return;
+  S.gold += Math.round(t.invested * .7);
+  for (const s of t.soldiers) { s.dead = true; s.gone = true; s.target = null; }
+  S.towers = S.towers.filter(x => x !== t);
+  S.pads[t.pad].tower = null;
+  ring(t.x, t.y, 30, '#ff9a8a', .3);
+}
+function predict(e, dur) {
+  if (e.stun > 0 || (e.blocker && !e.blocker.dead && hyp(e.x - e.blocker.x, e.y - e.blocker.y) < 28)) return { x: e.x, y: e.y };
+  const p = posAt(e.dist + e.speed * dur); return { x: p.x, y: p.y };
+}
+function pickTarget(t, st) {
+  let best = null;
+  for (const e of S.enemies) {
+    if (e.dead || (t.type === 'mortar' && e.fly)) continue;
+    const d = hyp(e.x - t.x, ey(e) - t.y);
+    if (d <= st.range && (!st.min || d >= st.min) && (!best || e.dist > best.dist)) best = e;
+  }
+  return best;
+}
+function updateTower(t, dt) {
+  if (t.recoil > 0) t.recoil -= dt;
+  if (t.type === 'barracks') return;
+  const st = TSTAT[t.type][t.level];
+  t.cd -= dt;
+  if (t.cd > 0) return;
+  const e = pickTarget(t, st);
+  if (!e) return;
+  t.cd = st.rate; t.recoil = .15; t.angle = Math.atan2(ey(e) - t.y, e.x - t.x);
+  if (t.type === 'archer') S.projs.push({ k: 'arrow', x: t.x, y: t.y - 26, target: e, tx: e.x, ty: ey(e), sp: 520, dmg: st.dmg, dt: 'phys', ang: t.angle });
+  else if (t.type === 'mage') S.projs.push({ k: 'orb', x: t.x, y: t.y - 40, target: e, tx: e.x, ty: ey(e), sp: 340, dmg: st.dmg, dt: 'magic', ang: 0, col: '#c9a6ff' });
+  else if (t.type === 'mortar') { const dur = .9, l = predict(e, dur); S.projs.push({ k: 'shell', sx: t.x, sy: t.y - 12, x: t.x, y: t.y - 12, tx: l.x, ty: l.y, t: 0, dur, dmg: st.dmg, splash: st.splash }); }
+}
+function updateProj(p, dt) {
+  if (p.k === 'shell' || p.k === 'meteor') {
+    p.t += dt;
+    const f = Math.min(1, p.t / p.dur);
+    p.x = p.sx + (p.tx - p.sx) * f;
+    p.y = p.sy + (p.ty - p.sy) * f - (p.k === 'shell' ? Math.sin(f * Math.PI) * 70 : 0);
+    if (f >= 1) {
+      if (p.k === 'shell') explode(p.tx, p.ty, p.splash, p.dmg, 'phys', '#ffcf7a');
+      else explode(p.tx, p.ty, 44, 44, 'pure', '#ff8a3a');
+      p.done = true;
+    }
+    return;
+  }
+  const e = p.target;
+  if (e && !e.dead) { p.tx = e.x; p.ty = ey(e); }
+  const dx = p.tx - p.x, dy = p.ty - p.y, d = hyp(dx, dy), step = p.sp * dt;
+  if (d <= step + 2) { if (e && !e.dead) hurt(e, p.dmg, p.dt); ring(p.tx, p.ty, p.big ? 20 : 9, p.k === 'orb' ? (p.col || '#c9a6ff') : (p.big ? '#ffe27a' : '#fff'), .18); p.done = true; }
+  else { p.x += dx / d * step; p.y += dy / d * step; p.ang = Math.atan2(dy, dx); }
+}
+
+/* ---------- заклинания ---------- */
+function summon(x, y, n, st, col, spirit) {
+  const c = nearestOnPath(x, y);
+  if (c.d > 70) { say('Призывать можно только на дорогу'); return false; }
+  for (let i = 0; i < n; i++) {
+    const off = (i - (n - 1) / 2) * 24;
+    const post = { x: c.x - c.dy * off, y: c.y + c.dx * off };
+    const s = makeSoldier({ x: post.x, y: post.y - 30, post, temp: true, life: st.life, hp: st.hp, max: st.hp, dmg: st.dmg, rate: st.rate, col });
+    S.soldiers.push(s);
+  }
+  ring(c.x, c.y, 40, col, .45);
+  return true;
+}
+function castSpell(id, x, y) {
+  if (S.over) return false;
+  const sp = SPELLS[id];
+  if (S.scd[id] > 0) { say('Заклинание ещё перезаряжается'); return false; }
+  let ok = false;
+  switch (id) {
+    case 'knights': ok = summon(x, y, 2, { hp: 95, dmg: 9, rate: .8, life: 16 }, '#4a78c4'); break;
+    case 'reinforce': ok = summon(x, y, 3, { hp: 80, dmg: 8, rate: .8, life: 14 }, '#5f9440'); break;
+    case 'meteors': S.meteors.push({ x, y, n: 6, t: 0, next: .15 }); ring(x, y, sp.r, 'rgba(255,140,60,.9)', .6); ok = true; break;
+    case 'quake':
+      areaHit(0, 0, 4000, (e) => { e.stun = Math.max(e.stun, 2); hurt(e, 15, 'phys'); }, false);
+      ring(W / 2, H / 2, 420, '#d9a95c', .7); ok = true; break;
+    case 'frost':
+      areaHit(x, y, sp.r, (e) => { e.stun = Math.max(e.stun, 3); e.ice = 3; hurt(e, 8, 'magic'); }, true);
+      ring(x, y, sp.r, '#9fe3ff', .5); ok = true; break;
+    case 'wrath':
+      areaHit(x, y, sp.r, (e) => hurt(e, 45, 'magic'), true);
+      ring(x, y, sp.r, '#fff3a8', .5); ok = true; break;
+    case 'wave':
+      areaHit(x, y, sp.r, (e) => { e.dist = Math.max(0, e.dist - 140); hurt(e, 12, 'magic'); }, false);
+      ring(x, y, sp.r, '#5fb4ff', .55); ok = true; break;
+    case 'fireball':
+      areaHit(x, y, sp.r, (e) => { hurt(e, 95, 'magic'); e.burn = 5; e.burnDps = 10; }, true);
+      ring(x, y, sp.r, '#ff7a2a', .6); ok = true; break;
+  }
+  if (ok) S.scd[id] = sp.cd;
+  return ok;
+}
+function armSpell(id) {
+  if (S.over || !SPELLS[id]) return;
+  if (S.scd[id] > 0) { say('Заклинание ещё перезаряжается'); return; }
+  closeMenu();
+  const sp = SPELLS[id];
+  if (sp.aim === 'none') { castSpell(id, 0, 0); S.spell = null; return; }
+  S.spell = S.spell === id ? null : id;
+  if (S.spell) say(sp.aim === 'road' ? 'Выбери место на дороге' : 'Выбери место на карте');
+}
+
+/* ---------- способности героев ---------- */
+function bestCluster(cx, cy, reach, rad, air) {
+  let best = null, bc = 0;
+  for (const e of S.enemies) {
+    if (e.dead || (e.fly && !air) || hyp(e.x - cx, ey(e) - cy) > reach) continue;
+    let c = 0;
+    for (const o of S.enemies) if (!o.dead && (air || !o.fly) && hyp(o.x - e.x, ey(o) - ey(e)) <= rad) c++;
+    if (c > bc) { bc = c; best = e; }
+  }
+  return best;
+}
+function nearEnemies(h, rad, air) { return S.enemies.filter(e => !e.dead && (air || !e.fly) && hyp(e.x - h.x, ey(e) - h.y) <= rad); }
+const ABIL = {
+  edrik(h) {
+    let best = null, bd = 260;
+    for (const e of S.enemies) { if (e.dead || e.fly) continue; const d = hyp(e.x - h.x, e.y - h.y); if (d < bd) { best = e; bd = d; } }
+    if (!best) { say('Рядом нет врагов'); return false; }
+    const a = Math.atan2(h.y - best.y, h.x - best.x);
+    h.x = best.x + Math.cos(a) * 20; h.y = best.y + Math.sin(a) * 20; h.post = { x: h.x, y: h.y };
+    areaHit(h.x, h.y, 80, (e) => { e.stun = Math.max(e.stun, 2.4); hurt(e, 30, 'phys'); }, false);
+    ring(h.x, h.y, 80, '#ffe27a', .4); return true;
+  },
+  grum(h) {
+    const l = nearEnemies(h, 125, false);
+    if (!l.length) { say('Рядом нет врагов'); return false; }
+    l.forEach(e => { e.stun = Math.max(e.stun, 2.6); hurt(e, 20, 'phys'); });
+    ring(h.x, h.y, 125, '#d9a95c', .5); return true;
+  },
+  kara(h) { h.rageT = 8; ring(h.x, h.y, 44, '#ff6a4a', .45); return true; },
+  tarn(h) {
+    let best = null;
+    for (const e of S.enemies) { if (e.dead || hyp(e.x - h.x, ey(e) - h.y) > 340) continue; if (!best || e.hp > best.hp) best = e; }
+    if (!best) { say('Рядом нет врагов'); return false; }
+    S.projs.push({ k: 'arrow', big: true, x: h.x, y: h.y - 12, target: best, tx: best.x, ty: ey(best), sp: 760, dmg: 150, dt: 'phys', ang: 0 });
+    return true;
+  },
+  xol(h) {
+    const c = bestCluster(h.x, h.y, 270, 75, true);
+    if (!c) { say('Рядом нет врагов'); return false; }
+    areaHit(c.x, ey(c), 75, (e) => { e.stun = Math.max(e.stun, 1.6); e.ice = 1.6; hurt(e, 45, 'magic'); }, true);
+    ring(c.x, ey(c), 75, '#9fe3ff', .5); return true;
+  },
+  ishta(h) {
+    for (let i = 0; i < 3; i++) {
+      const a = i * 2.1, post = { x: h.post.x + Math.cos(a) * 26, y: h.post.y + Math.sin(a) * 18 };
+      S.soldiers.push(makeSoldier({ x: h.x, y: h.y, post, temp: true, life: 10, hp: 60, max: 60, dmg: 8, rate: .8, col: '#b78aff', engage: 95 }));
+    }
+    ring(h.x, h.y, 50, '#d9b8ff', .5); return true;
+  },
+  ashgar(h) {
+    const c = bestCluster(h.x, h.y, 270, 85, true);
+    if (!c) { say('Рядом нет врагов'); return false; }
+    areaHit(c.x, ey(c), 85, (e) => { hurt(e, 30, 'magic'); e.burn = 4; e.burnDps = 9; }, true);
+    ring(c.x, ey(c), 85, '#ff7a2a', .55); return true;
+  },
+  morven(h) {
+    const l = nearEnemies(h, 130, true);
+    if (!l.length) { say('Рядом нет врагов'); return false; }
+    let heal = 0; l.forEach(e => { hurt(e, 16, 'pure'); heal += 10; });
+    h.hp = Math.min(h.max, h.hp + Math.min(90, heal));
+    ring(h.x, h.y, 130, '#b9ffd0', .5); return true;
+  },
+  zefira(h) {
+    const l = nearEnemies(h, 145, false);
+    if (!l.length) { say('Рядом нет наземных врагов'); return false; }
+    l.forEach(e => { e.dist = Math.max(0, e.dist - 110); hurt(e, 12, 'magic'); });
+    ring(h.x, h.y, 145, '#c8f0ff', .55); return true;
+  }
+};
+function useAbility(i) {
+  if (S.over) return false;
+  const h = S.heroes[i];
+  if (!h) return false;
+  if (S.hcd[i] > 0) { say('Способность перезаряжается'); return false; }
+  if (h.dead) { say(h.def.name + ' восстанавливается'); return false; }
+  const ok = ABIL[h.hid](h);
+  if (ok) S.hcd[i] = h.def.ab.cd;
+  return ok;
+}
+
+/* ---------- шаг симуляции ---------- */
+function step(dt) {
+  if (S.over) return;
+  S.t += dt;
+  while (S.queue.length && S.queue[0].t <= S.t) spawn(S.queue.shift().type);
+  for (const e of S.enemies) updateEnemy(e, dt);
+  for (const s of S.soldiers) updateSoldier(s, dt);
+  for (const t of S.towers) updateTower(t, dt);
+  for (const m of S.meteors) {
+    m.t += dt;
+    while (m.n > 0 && m.t >= m.next) {
+      m.next += .28; m.n--;
+      const a = rnd(0, 6.283), r = Math.sqrt(Math.random()) * 62, tx = m.x + Math.cos(a) * r, ty = m.y + Math.sin(a) * r;
+      S.projs.push({ k: 'meteor', sx: tx + 140, sy: ty - 380, x: tx + 140, y: ty - 380, tx, ty, t: 0, dur: .6 });
+    }
+  }
+  S.meteors = S.meteors.filter(m => m.n > 0);
+  for (const p of S.projs) updateProj(p, dt);
+  S.projs = S.projs.filter(p => !p.done);
+  for (const f of S.fx) f.t += dt;
+  S.fx = S.fx.filter(f => f.t < f.dur);
+  for (const k in S.scd) S.scd[k] = Math.max(0, S.scd[k] - dt);
+  S.hcd = S.hcd.map(v => Math.max(0, v - dt));
+  S.enemies = S.enemies.filter(e => !e.dead);
+  S.soldiers = S.soldiers.filter(s => !s.gone);
+  for (const t of S.towers) t.soldiers = t.soldiers.filter(s => !s.gone);
+  if (S.lives <= 0) { S.lives = 0; finish(false); }
+  else if (S.wave >= WAVES.length && !S.queue.length && !S.enemies.length) finish(true);
+}
+function finish(win) {
+  S.over = win ? 'win' : 'lose'; S.spell = null; closeMenu();
+  const stars = win ? (S.lives >= 18 ? 3 : S.lives >= 10 ? 2 : 1) : 0;
+  S.stars = stars;
+  $('endTitle').textContent = win ? 'Победа' : 'Орки прорвались';
+  $('endText').textContent = win ? 'Осталось жизней: ' + S.lives + '. Побеждено орков: ' + S.kills + '.' : 'Дошли до волны ' + S.wave + ' из ' + WAVES.length + '. Побеждено орков: ' + S.kills + '.';
+  let h = '';
+  for (let i = 0; i < 3; i++) h += '<svg viewBox="0 0 24 24"><path d="M12 2.5l2.9 6.2 6.8.8-5 4.7 1.3 6.7L12 17.5l-6 3.4 1.3-6.7-5-4.7 6.8-.8z" fill="' + (i < stars ? '#F0B93A' : 'rgba(128,150,140,.35)') + '" stroke="' + (i < stars ? '#A0710F' : 'rgba(128,150,140,.6)') + '" stroke-width="1.4" stroke-linejoin="round"/></svg>';
+  $('endStars').innerHTML = h;
+  $('end').hidden = false;
+}
+
+/* ---------- меню башен ---------- */
+function statLine(t) {
+  if (t.type === 'barracks') { const s = BAR[t.level]; return 'Рыцарей: ' + s.n + ', здоровье ' + s.hp + ', урон ' + s.dmg + ', физический'; }
+  const s = TSTAT[t.type][t.level];
+  if (t.type === 'archer') return 'Урон ' + s.dmg + ', дальность ' + s.range + ', физический';
+  if (t.type === 'mage') return 'Урон ' + s.dmg + ', дальность ' + s.range + ', магический';
+  return 'Урон ' + s.dmg + ' по площади, дальность ' + s.range + ', физический';
+}
+function menuHTML(pad) {
+  const t = pad.tower;
+  if (!t) {
+    return '<div class="mtitle">Построить башню</div>' + ORDER.map(k => {
+      const d = TOWER[k];
+      return '<button class="opt" type="button" data-act="build:' + k + '"' + (S.gold >= d.cost ? '' : ' data-poor="1"') + '><span class="oname">' + d.name + '</span><span class="ocost">' + d.cost + '</span><span class="oinfo">' + d.blurb + '</span></button>';
+    }).join('');
+  }
+  const up = t.level < 3 ? UPG[t.type][t.level - 1] : null;
+  return '<div class="mtitle">' + TOWER[t.type].name + ', уровень ' + t.level + ' из 3</div><div class="minfo">' + statLine(t) + '</div>' +
+    (t.type === 'barracks' ? '<div class="minfo">Нажми внутри синего круга, чтобы отправить рыцарей в это место.</div>' : '') +
+    (up !== null ? '<button class="opt" type="button" data-act="upgrade"' + (S.gold >= up ? '' : ' data-poor="1"') + '><span class="oname">Улучшить</span><span class="ocost">' + up + '</span></button>' : '<div class="minfo">Максимальный уровень</div>') +
+    '<button class="opt sell" type="button" data-act="sell"><span class="oname">Продать</span><span class="ocost">+' + Math.round(t.invested * .7) + '</span></button>';
+}
+function menuKey() {
+  const p = S.sel; if (!p) return '';
+  const t = p.tower, up = t && t.level < 3 ? UPG[t.type][t.level - 1] : 0;
+  return p.i + ':' + (t ? t.level : 0) + ':' + [70, 90, 100, 120, up].map(c => S.gold >= c ? 1 : 0).join('');
+}
+function placeMenu(x, y) {
+  const sr = stage.getBoundingClientRect();
+  const sx = x / W * sr.width, sy = y / H * sr.height;
+  menu.hidden = false;
+  const mw = menu.offsetWidth, mh = menu.offsetHeight;
+  const left = clamp(sx - mw / 2, 6, Math.max(6, sr.width - mw - 6));
+  let top = sy - mh - 34;
+  if (top < 6) top = Math.min(sy + 34, Math.max(6, sr.height - mh - 6));
+  menu.style.left = left + 'px'; menu.style.top = top + 'px';
+}
+function openMenu(pad) {
+  S.sel = pad; S.menuKey = menuKey();
+  menu.innerHTML = menuHTML(pad);
+  placeMenu(pad.x, pad.y);
+}
+function closeMenu() { if (S) { S.sel = null; S.menuKey = ''; } menu.hidden = true; }
+function refreshMenu() {
+  if (!S.sel) return;
+  const k = menuKey();
+  if (k !== S.menuKey) { S.menuKey = k; menu.innerHTML = menuHTML(S.sel); placeMenu(S.sel.x, S.sel.y); }
+}
+menu.addEventListener('click', (ev) => {
+  const b = ev.target.closest && ev.target.closest('[data-act]');
+  if (!b || !S || !S.sel) return;
+  const act = b.getAttribute('data-act'), pad = S.sel;
+  if (act.indexOf('build:') === 0) { if (build(pad.i, act.slice(6))) closeMenu(); }
+  else if (act === 'upgrade') upgrade(pad.tower);
+  else if (act === 'sell') { sell(pad.tower); closeMenu(); }
+});
+
+/* ---------- ввод на карте ---------- */
+function toLogical(ev) { const r = canvas.getBoundingClientRect(); return { x: (ev.clientX - r.left) / r.width * W, y: (ev.clientY - r.top) / r.height * H }; }
+function padAt(p) { for (const pad of S.pads) if (hyp(pad.x - p.x, pad.y - p.y) < 30) return pad; return null; }
+function selectHero(i) { if (S.heroes[i]) S.selHero = i; }
+canvas.addEventListener('pointerdown', (ev) => {
+  if (!S || !inPlay || S.over) return;
+  if (ev.button !== undefined && ev.button !== 0) return;
+  const p = toLogical(ev); mouse.x = p.x; mouse.y = p.y;
+  if (S.spell) { if (castSpell(S.spell, p.x, p.y)) S.spell = null; return; }
+  const pad = padAt(p);
+  if (pad) { if (S.sel === pad) closeMenu(); else openMenu(pad); return; }
+  const t = S.sel && S.sel.tower;
+  if (t && t.type === 'barracks' && hyp(p.x - t.x, p.y - t.y) <= t.range) {
+    placeRally(t, p.x, p.y);
+    ring(t.rally.x, t.rally.y, 20, '#8fc0ff', .35);
+    return;
+  }
+  if (S.sel) { closeMenu(); return; }
+  const near = S.heroes.findIndex(h => !h.dead && hyp(h.x - p.x, h.y - p.y) < 24);
+  if (near >= 0) { selectHero(near); return; }
+  const h = S.heroes[S.selHero];
+  h.post = { x: clamp(p.x, 12, W - 12), y: clamp(p.y, 12, H - 12) };
+  ring(h.post.x, h.post.y, 16, '#ffe27a', .3);
+});
+canvas.addEventListener('pointermove', (ev) => { if (!S) return; const p = toLogical(ev); mouse.x = p.x; mouse.y = p.y; S.hoverPad = padAt(p); });
+canvas.addEventListener('pointerleave', () => { mouse.x = -99; mouse.y = -99; if (S) S.hoverPad = null; });
+canvas.addEventListener('contextmenu', (ev) => { ev.preventDefault(); if (S) { S.spell = null; closeMenu(); } });
+
+/* ---------- экраны: сборка и игра ---------- */
+const prepEl = $('prep'), playEl = $('play');
+const heroCards = $('heroCards'), spellCards = $('spellCards'), goBtn = $('go');
+function cardsHTML() {
+  heroCards.innerHTML = HERO_ORDER.map(id => {
+    const d = HEROES[id];
+    return '<button class="pick" type="button" data-kind="hero" data-id="' + id + '" aria-pressed="' + (LOAD.heroes.includes(id)) + '"><span class="dot" style="background:' + d.color + '"></span><span class="pname">' + d.name + '</span><span class="prole">' + d.role + ', ' + KIND_TEXT[d.kind] + '</span><span class="pab"><b>' + d.ab.name + ':</b> ' + d.ab.info + '</span></button>';
+  }).join('');
+  spellCards.innerHTML = SPELL_ORDER.map(id => {
+    const d = SPELLS[id];
+    return '<button class="pick" type="button" data-kind="spell" data-id="' + id + '" aria-pressed="' + (LOAD.spells.includes(id)) + '"><span class="dot" style="background:#e9d9a6"></span><span class="pname">' + d.name + '</span><span class="prole">' + d.race + ', перезарядка ' + d.cd + ' с</span><span class="pab">' + d.info + '</span></button>';
+  }).join('');
+}
+function prepStatus() {
+  const hs = LOAD.heroes.length, ss = LOAD.spells.length;
+  $('heroCount').textContent = 'выбрано ' + hs + ' из 2';
+  $('spellCount').textContent = 'выбрано ' + ss + ' из 3';
+  const ready = hs === 2 && ss === 3;
+  goBtn.disabled = !ready;
+  $('goHint').textContent = ready ? 'Героев и заклинания можно сменить в любой момент, но бой начнётся заново.' : 'Выбери двух героев и три заклинания.';
+}
+function togglePick(kind, id) {
+  const list = kind === 'hero' ? LOAD.heroes : LOAD.spells, max = kind === 'hero' ? 2 : 3;
+  const i = list.indexOf(id);
+  if (i >= 0) list.splice(i, 1);
+  else { list.push(id); if (list.length > max) list.shift(); }
+  cardsHTML(); prepStatus();
+}
+function onPick(ev) {
+  const b = ev.target.closest && ev.target.closest('.pick');
+  if (b) togglePick(b.getAttribute('data-kind'), b.getAttribute('data-id'));
+}
+heroCards.addEventListener('click', onPick);
+spellCards.addEventListener('click', onPick);
+
+const spellBar = $('spellBar'), heroBar = $('heroBar');
+let ui = { spellBtns: [], heroCards: [] };
+function buildControls() {
+  spellBar.innerHTML = LOAD.spells.map((id, i) => '<button class="btn spell" type="button" data-id="' + id + '"><span class="cd"></span><span class="lbl">' + SPELLS[id].name + '<span class="key">' + (i + 1) + '</span></span></button>').join('');
+  heroBar.innerHTML = LOAD.heroes.map((id, i) => {
+    const d = HEROES[id];
+    return '<div class="hcard" data-i="' + i + '"><button class="hsel" type="button" data-i="' + i + '"><span class="dot" style="background:' + d.color + '"></span>' + d.name + '</button><div class="bar" aria-hidden="true"><i></i></div><span class="ht"></span><button class="btn abil" type="button" data-i="' + i + '"><span class="cd"></span><span class="lbl">' + d.ab.name + '<span class="key">' + (4 + i) + '</span></span></button></div>';
+  }).join('');
+  ui.spellBtns = Array.from(spellBar.querySelectorAll('.spell'));
+  ui.heroCards = Array.from(heroBar.querySelectorAll('.hcard'));
+}
+function startBattle() {
+  prepEl.hidden = true; playEl.hidden = false; $('end').hidden = true;
+  inPlay = true;
+  newGame(); buildControls();
+}
+function showPrep() {
+  inPlay = false; playEl.hidden = true; prepEl.hidden = false; $('end').hidden = true;
+  if (S) S.paused = true;
+  closeMenu();
+  cardsHTML(); prepStatus();
+  window.scrollTo && window.scrollTo(0, 0);
+}
+function setLoadout(heroes, spells) { LOAD = { heroes: heroes.slice(), spells: spells.slice() }; }
+
+const btnWave = $('btnWave'), btnSpeed = $('btnSpeed'), btnPause = $('btnPause');
+btnWave.addEventListener('click', () => startWave());
+btnSpeed.addEventListener('click', () => { S.speed = S.speed === 1 ? 2 : 1; });
+btnPause.addEventListener('click', () => { if (!S.over) S.paused = !S.paused; });
+$('btnPrep').addEventListener('click', showPrep);
+$('again').addEventListener('click', showPrep);
+goBtn.addEventListener('click', startBattle);
+spellBar.addEventListener('click', (ev) => { const b = ev.target.closest && ev.target.closest('.spell'); if (b && S) armSpell(b.getAttribute('data-id')); });
+heroBar.addEventListener('click', (ev) => {
+  if (!S) return;
+  const a = ev.target.closest && ev.target.closest('.abil'), s = ev.target.closest && ev.target.closest('.hsel');
+  if (a) useAbility(+a.getAttribute('data-i'));
+  else if (s) selectHero(+s.getAttribute('data-i'));
+});
+window.addEventListener('keydown', (ev) => {
+  if (!S || !inPlay || ev.ctrlKey || ev.metaKey || ev.altKey) return;
+  const m = /^Digit([1-5])$/.exec(ev.code || '');
+  if (m) { const n = +m[1]; if (n <= 3) armSpell(LOAD.spells[n - 1]); else useAbility(n - 4); }
+  else if (ev.code === 'Space') { const tag = ev.target && ev.target.tagName; if (tag !== 'BUTTON') { ev.preventDefault(); startWave(); } }
+  else if (ev.code === 'Escape') { S.spell = null; closeMenu(); }
+});
+
+/* ---------- рисование ---------- */
+function circle(x, y, r, fill, stroke, lw) { ctx.beginPath(); ctx.arc(x, y, r, 0, 7); if (fill) { ctx.fillStyle = fill; ctx.fill(); } if (stroke) { ctx.lineWidth = lw || 1; ctx.strokeStyle = stroke; ctx.stroke(); } }
+function ell(x, y, rx, ry, fill) { ctx.beginPath(); ctx.ellipse(x, y, rx, ry, 0, 0, 7); ctx.fillStyle = fill; ctx.fill(); }
+function rrect(x, y, w, h, r, fill, stroke) { ctx.beginPath(); if (ctx.roundRect) ctx.roundRect(x, y, w, h, r); else ctx.rect(x, y, w, h); ctx.fillStyle = fill; ctx.fill(); if (stroke) { ctx.lineWidth = 1.2; ctx.strokeStyle = stroke; ctx.stroke(); } }
+function tri(a, b, c, d, e, f, fill) { ctx.beginPath(); ctx.moveTo(a, b); ctx.lineTo(c, d); ctx.lineTo(e, f); ctx.closePath(); ctx.fillStyle = fill; ctx.fill(); }
+function hpBar(x, y, w, f, col) { rrect(x - w / 2, y, w, 4, 2, 'rgba(0,0,0,.55)'); if (f > 0) rrect(x - w / 2, y, w * clamp(f, 0, 1), 4, 2, col); }
+function dashed(x, y, r, col) { ctx.setLineDash([7, 6]); ctx.lineWidth = 2.5; ctx.strokeStyle = col; ctx.beginPath(); ctx.arc(x, y, r, 0, 7); ctx.stroke(); ctx.setLineDash([]); }
+function label(txt, x, y) { ctx.font = '800 11px Nunito, system-ui, sans-serif'; ctx.textAlign = 'center'; ctx.lineWidth = 3; ctx.strokeStyle = 'rgba(0,0,0,.7)'; ctx.strokeText(txt, x, y); ctx.fillStyle = '#fff'; ctx.fillText(txt, x, y); }
+
+function makeBG() {
+  const c = document.createElement('canvas');
+  c.width = Math.round(W * dpr); c.height = Math.round(H * dpr);
+  const g = c.getContext('2d'); g.setTransform(dpr, 0, 0, dpr, 0, 0);
+  const r = mulberry(11);
+  const gr = g.createLinearGradient(0, 0, 0, H); gr.addColorStop(0, '#78ad52'); gr.addColorStop(1, '#5f9646');
+  g.fillStyle = gr; g.fillRect(0, 0, W, H);
+  for (let i = 0; i < 90; i++) { g.fillStyle = r() < .5 ? 'rgba(255,255,220,.06)' : 'rgba(15,60,20,.08)'; g.beginPath(); g.ellipse(r() * W, r() * H, 24 + r() * 80, 14 + r() * 42, r() * 3, 0, 7); g.fill(); }
+  g.lineJoin = 'round'; g.lineCap = 'round';
+  const line = (w, col) => { g.beginPath(); g.moveTo(PATH[0][0], PATH[0][1]); for (let i = 1; i < PATH.length; i++) g.lineTo(PATH[i][0], PATH[i][1]); g.lineWidth = w; g.strokeStyle = col; g.stroke(); };
+  line(58, '#5a3d22'); line(50, '#c9a568'); line(38, '#dcbf85');
+  for (let i = 0; i < 280; i++) { const p = posAt(r() * total), off = (r() - .5) * 36; g.fillStyle = r() < .5 ? 'rgba(120,90,50,.35)' : 'rgba(255,240,200,.35)'; g.beginPath(); g.ellipse(p.x - p.dy * off, p.y + p.dx * off, 1.5 + r() * 2.5, 1 + r() * 1.6, r() * 3, 0, 7); g.fill(); }
+  for (let i = 0; i < 160; i++) {
+    const x = r() * W, y = r() * H;
+    if (nearestOnPath(x, y).d < 40) continue;
+    g.strokeStyle = 'rgba(30,80,30,.5)'; g.lineWidth = 1.4; g.beginPath(); g.moveTo(x, y); g.lineTo(x - 2, y - 5); g.moveTo(x, y); g.lineTo(x + 2, y - 6); g.moveTo(x, y); g.lineTo(x + 5, y - 3); g.stroke();
+  }
+  const items = [];
+  for (let i = 0; i < 90; i++) {
+    const x = 10 + r() * (W - 20), y = 20 + r() * (H - 30), kind = r() < .78 ? 'tree' : 'rock';
+    if (nearestOnPath(x, y).d < 54) continue;
+    if (PADS.some(p => hyp(p[0] - x, p[1] - y) < 52)) continue;
+    if (x > 890 && y > 340) continue;
+    if (x < 200 && y < 110) continue;
+    if (items.some(o => hyp(o.x - x, o.y - y) < 38)) continue;
+    items.push({ x, y, kind, s: .8 + r() * .5 });
+  }
+  items.sort((a, b) => a.y - b.y);
+  for (const o of items) {
+    const { x, y, s } = o;
+    if (o.kind === 'tree') {
+      g.fillStyle = 'rgba(0,0,0,.2)'; g.beginPath(); g.ellipse(x, y + 6, 17 * s, 6 * s, 0, 0, 7); g.fill();
+      g.fillStyle = '#6b4a2a'; g.fillRect(x - 3 * s, y - 8 * s, 6 * s, 14 * s);
+      const cols = ['#2f6b34', '#3a7d3c', '#4a9445'];
+      [[-9, -16, 12], [9, -15, 12], [0, -26, 14]].forEach((q, k) => { g.fillStyle = cols[k]; g.beginPath(); g.arc(x + q[0] * s, y + q[1] * s, q[2] * s, 0, 7); g.fill(); });
+      g.fillStyle = 'rgba(255,255,200,.18)'; g.beginPath(); g.arc(x - 3 * s, y - 30 * s, 6 * s, 0, 7); g.fill();
+    } else {
+      g.fillStyle = 'rgba(0,0,0,.2)'; g.beginPath(); g.ellipse(x, y + 4, 13 * s, 5 * s, 0, 0, 7); g.fill();
+      g.fillStyle = '#8b8f88'; g.beginPath(); g.ellipse(x, y - 2, 12 * s, 8 * s, 0, 0, 7); g.fill();
+      g.fillStyle = '#a7aca4'; g.beginPath(); g.ellipse(x - 3 * s, y - 5 * s, 6 * s, 4 * s, 0, 0, 7); g.fill();
+    }
+  }
+  [[52, 62, 1], [128, 52, .85]].forEach(([x, y, s]) => {
+    g.fillStyle = 'rgba(0,0,0,.2)'; g.beginPath(); g.ellipse(x, y + 20 * s, 34 * s, 9 * s, 0, 0, 7); g.fill();
+    g.fillStyle = '#7a4a2c'; g.beginPath(); g.moveTo(x - 32 * s, y + 18 * s); g.lineTo(x, y - 30 * s); g.lineTo(x + 32 * s, y + 18 * s); g.closePath(); g.fill();
+    g.fillStyle = '#5a341e'; g.beginPath(); g.moveTo(x - 9 * s, y + 18 * s); g.lineTo(x, y - 4 * s); g.lineTo(x + 9 * s, y + 18 * s); g.closePath(); g.fill();
+    g.strokeStyle = '#3d2614'; g.lineWidth = 2; g.beginPath(); g.moveTo(x, y - 30 * s); g.lineTo(x, y - 46 * s); g.stroke();
+    g.fillStyle = '#a62f24'; g.beginPath(); g.moveTo(x, y - 46 * s); g.lineTo(x + 16 * s, y - 41 * s); g.lineTo(x, y - 35 * s); g.closePath(); g.fill();
+  });
+  [[928, 380], [928, 460]].forEach(([x, y]) => {
+    g.fillStyle = 'rgba(0,0,0,.25)'; g.beginPath(); g.ellipse(x, y + 24, 22, 7, 0, 0, 7); g.fill();
+    g.fillStyle = '#9a9a92'; g.fillRect(x - 15, y - 26, 30, 50);
+    g.fillStyle = '#b4b4ac'; g.fillRect(x - 15, y - 26, 10, 50);
+    g.fillStyle = '#7c7c75'; for (let i = 0; i < 3; i++) g.fillRect(x - 15 + i * 11, y - 33, 8, 8);
+    g.fillStyle = '#2f5fa8'; g.fillRect(x - 5, y - 10, 10, 18);
+  });
+  return c;
+}
+
+function drawPad(pad) {
+  const { x, y } = pad;
+  ell(x, y + 6, 28, 12, 'rgba(0,0,0,.25)');
+  ell(x, y + 2, 27, 12, '#7d7668'); ell(x, y - 1, 27, 12, '#b7b09f'); ell(x, y - 2, 20, 8.5, '#a29b8a');
+  if (!pad.tower) {
+    const hot = S.hoverPad === pad || S.sel === pad;
+    ctx.lineWidth = 2.5; ctx.strokeStyle = hot ? '#fff' : (S.gold >= 70 ? 'rgba(255,240,170,.75)' : 'rgba(255,255,255,.3)');
+    ctx.beginPath(); ctx.ellipse(x, y - 1, 27, 12, 0, 0, 7); ctx.stroke();
+  }
+}
+function drawTower(t) {
+  const x = t.x, y = t.y, rc = t.recoil > 0 ? t.recoil * 10 : 0;
+  ell(x, y + 5, 23, 10, 'rgba(0,0,0,.25)');
+  if (t.type === 'archer') {
+    rrect(x - 12, y - 28, 24, 32, 3, '#8a5a32', '#5a3a1e'); rrect(x - 12, y - 28, 24, 7, 3, '#a8703e');
+    tri(x - 19, y - 28, x, y - 48, x + 19, y - 28, '#b8442e'); tri(x - 19, y - 28, x, y - 48, x - 6, y - 28, '#cf5a40');
+    circle(x + Math.cos(t.angle) * 4, y - 33, 4.2, '#f2d2a4', '#8a5a32', 1);
+    ctx.strokeStyle = '#4b2f14'; ctx.lineWidth = 1.6; ctx.beginPath(); ctx.arc(x + Math.cos(t.angle) * 9, y - 33 + Math.sin(t.angle) * 4, 5, t.angle - 1.2, t.angle + 1.2); ctx.stroke();
+  } else if (t.type === 'barracks') {
+    rrect(x - 20, y - 24, 40, 28, 3, '#9a9488', '#635e54'); rrect(x - 20, y - 24, 14, 28, 3, '#b3ad9f');
+    ctx.fillStyle = '#7c776c'; for (let i = 0; i < 4; i++) ctx.fillRect(x - 20 + i * 11, y - 31, 8, 8);
+    rrect(x - 6, y - 12, 12, 16, 6, '#4a2f1a');
+    ctx.strokeStyle = '#3d2614'; ctx.lineWidth = 2; ctx.beginPath(); ctx.moveTo(x + 14, y - 31); ctx.lineTo(x + 14, y - 50); ctx.stroke();
+    tri(x + 14, y - 50, x + 30, y - 45, x + 14, y - 39, '#2f6fc0');
+  } else if (t.type === 'mage') {
+    rrect(x - 12, y - 38, 24, 42, 3, '#6a54b8', '#43337f'); rrect(x - 12, y - 38, 8, 42, 3, '#8470d0');
+    tri(x - 17, y - 38, x, y - 62, x + 17, y - 38, '#3e2f86'); tri(x - 17, y - 38, x, y - 62, x - 5, y - 38, '#5641a8');
+    const pulse = 5 + Math.sin(S.t * 4) * 1.2;
+    ctx.globalAlpha = .28; circle(x, y - 50, pulse + 6, '#d9c2ff'); ctx.globalAlpha = 1;
+    circle(x, y - 50, pulse, '#c9a6ff', '#fff', 1.2);
+    rrect(x - 4, y - 16, 8, 14, 4, '#2b2058');
+  } else {
+    ell(x, y - 6, 20, 12, '#4d4a52'); ell(x, y - 10, 20, 12, '#66636c');
+    ctx.save(); ctx.translate(x, y - 14); ctx.rotate(t.angle);
+    rrect(-4 - rc, -6, 30, 12, 4, '#2f2d33'); rrect(20 - rc, -8, 8, 16, 3, '#1f1e23');
+    ctx.restore();
+    circle(x, y - 14, 8, '#54515a', '#2f2d33', 1.5);
+  }
+  for (let i = 0; i < t.level; i++) circle(x - (t.level - 1) * 5 + i * 10, y + 13, 3, '#f4c542', '#7a5a10', 1);
+}
+function drawSoldier(s) {
+  const x = s.x, y = s.y, r = s.r, f = s.face;
+  ell(x, y + r * .8, r, r * .4, 'rgba(0,0,0,.25)');
+  circle(x, y - 2, r, s.hurt > 0 ? '#fff' : s.col, '#22386b', 1.3);
+  ctx.beginPath(); ctx.arc(x, y - 4, r * .82, Math.PI, 0); ctx.fillStyle = '#b7bcc8'; ctx.fill();
+  ctx.fillStyle = '#2a2a33'; ctx.fillRect(x - 2, y - 4, 4, 5);
+  rrect(x - f * (r + 1) - 3, y - 6, 6, 11, 3, '#e2b53c', '#7a5a10');
+  const sw = s.swing > 0 ? 1 : 0;
+  ctx.strokeStyle = '#e9edf2'; ctx.lineWidth = 2.4; ctx.beginPath(); ctx.moveTo(x + f * (r - 2), y + 2); ctx.lineTo(x + f * (r + 11 + sw * 4), y - 8 + sw * 10); ctx.stroke();
+  if (s.hp < s.max) hpBar(x, y - r - 8, 20, s.hp / s.max, '#59c46a');
+}
+function drawDragon(s) {
+  const x = s.x, y = s.y - 22, f = s.face, c = s.def.color, wing = Math.sin(S.t * 9 + s.x) * .5;
+  ell(s.x, s.y + 8, 18, 6, 'rgba(0,0,0,.25)');
+  ctx.strokeStyle = c; ctx.lineWidth = 5; ctx.lineCap = 'round'; ctx.beginPath(); ctx.moveTo(x - f * 8, y + 3); ctx.quadraticCurveTo(x - f * 24, y + 12, x - f * 28, y - 2); ctx.stroke();
+  const shade = s.hid === 'morven' ? '#8d8874' : 'rgba(0,0,0,.3)';
+  tri(x - 2, y - 2, x - 18, y - 18 - wing * 12, x + 9, y - 5, c); tri(x - 2, y - 2, x - 18, y - 18 - wing * 12, x - 6, y - 4, shade);
+  tri(x + 2, y - 2, x + 16, y - 16 - wing * 12, x + 12, y - 2, c);
+  ell(x, y, 13, 8.5, s.hurt > 0 ? '#fff' : c);
+  ell(x, y + 2, 9, 5, 'rgba(255,255,255,.28)');
+  circle(x + f * 12, y - 3, 6, c); tri(x + f * 15, y - 3, x + f * 22, y - 1, x + f * 15, y + 2, c);
+  circle(x + f * 12, y - 5, 1.6, '#fff'); circle(x + f * 12.5, y - 5, .8, '#222');
+  tri(x + f * 9, y - 8, x + f * 8, y - 14, x + f * 12, y - 8, '#f0e6c8');
+  if (s.hid === 'morven') { ctx.strokeStyle = '#6b6754'; ctx.lineWidth = 1.2; for (let i = -1; i <= 1; i++) { ctx.beginPath(); ctx.moveTo(x + i * 4, y - 6); ctx.lineTo(x + i * 4, y + 6); ctx.stroke(); } }
+}
+function drawHero(s) {
+  if (s.dead) return;
+  const d = s.def, x = s.x, y = s.y, r = s.r, f = s.face;
+  if (S.heroes[S.selHero] === s) { ctx.lineWidth = 2.5; ctx.strokeStyle = '#ffe27a'; ctx.beginPath(); ctx.ellipse(s.fly ? x : x, (s.fly ? y + 8 : y + r * .8), r + 7, (r + 7) * .42, 0, 0, 7); ctx.stroke(); }
+  if (d.look === 'dragon') drawDragon(s);
+  else {
+    ell(x, y + r * .8, r, r * .4, 'rgba(0,0,0,.25)');
+    const flash = s.hurt > 0, sw = s.swing > 0 ? 1 : 0;
+    if (d.look === 'knight') {
+      circle(x, y - 2, r, flash ? '#fff' : d.color, '#22386b', 1.3);
+      ctx.beginPath(); ctx.arc(x, y - 4, r * .82, Math.PI, 0); ctx.fillStyle = '#d8dbe3'; ctx.fill();
+      ctx.fillStyle = '#2a2a33'; ctx.fillRect(x - 2, y - 4, 4, 5);
+      tri(x - 3, y - r - 2, x, y - r - 12, x + 5, y - r - 1, '#e0523f');
+      rrect(x - f * (r + 1) - 3, y - 6, 6, 11, 3, '#e2b53c', '#7a5a10');
+      ctx.strokeStyle = '#e9edf2'; ctx.lineWidth = 2.4; ctx.beginPath(); ctx.moveTo(x + f * (r - 2), y + 2); ctx.lineTo(x + f * (r + 11 + sw * 4), y - 8 + sw * 10); ctx.stroke();
+    } else if (d.look === 'ogre') {
+      circle(x, y - 2, r, flash ? '#fff' : d.color, '#5a3a16', 1.5);
+      circle(x - 4, y - 5, 2.2, '#fff'); circle(x + 4, y - 5, 2.2, '#fff'); circle(x - 4, y - 5, 1, '#222'); circle(x + 4, y - 5, 1, '#222');
+      tri(x - 6, y + 2, x - 3, y + 2, x - 4.5, y - 3, '#f3efe0'); tri(x + 6, y + 2, x + 3, y + 2, x + 4.5, y - 3, '#f3efe0');
+      ctx.strokeStyle = '#5a3a16'; ctx.lineWidth = 4; ctx.beginPath(); ctx.moveTo(x + f * (r - 2), y + 6); ctx.lineTo(x + f * (r + 12 + sw * 4), y - 10 + sw * 12); ctx.stroke();
+      circle(x + f * (r + 13 + sw * 4), y - 11 + sw * 12, 5, '#6b4a2a', '#3d2614', 1);
+    } else if (d.look === 'orc') {
+      circle(x, y - 2, r, flash ? '#fff' : d.color, '#274a1a', 1.3);
+      ctx.strokeStyle = '#c2483a'; ctx.lineWidth = 2; ctx.beginPath(); ctx.moveTo(x - 6, y - 8); ctx.lineTo(x - 2, y - 3); ctx.moveTo(x + 6, y - 8); ctx.lineTo(x + 2, y - 3); ctx.stroke();
+      circle(x - 3.5, y - 4, 2, '#fff'); circle(x + 3.5, y - 4, 2, '#fff'); circle(x - 3.5, y - 4, .9, '#b01818'); circle(x + 3.5, y - 4, .9, '#b01818');
+      tri(x - 4, y - r - 1, x, y - r - 10, x + 4, y - r - 1, '#c2483a');
+      ctx.strokeStyle = '#d9dde3'; ctx.lineWidth = 2.6; ctx.beginPath(); ctx.moveTo(x + f * (r - 2), y + 2); ctx.lineTo(x + f * (r + 8 + sw * 4), y - 6 + sw * 9); ctx.moveTo(x - f * (r - 2), y + 2); ctx.lineTo(x - f * (r + 6), y - 6); ctx.stroke();
+    } else if (d.look === 'ranger') {
+      circle(x, y - 2, r, flash ? '#fff' : d.color, '#25502a', 1.3);
+      ctx.beginPath(); ctx.arc(x, y - 4, r * .95, Math.PI, 0); ctx.fillStyle = '#2f6b34'; ctx.fill();
+      circle(x, y - 1, r * .45, '#f2d2a4');
+      ctx.strokeStyle = '#6b4a2a'; ctx.lineWidth = 2.2; ctx.beginPath(); ctx.arc(x + f * (r + 3), y - 2, 9, -1.3 + (f < 0 ? 3.14 : 0), 1.3 + (f < 0 ? 3.14 : 0)); ctx.stroke();
+    } else if (d.look === 'mage') {
+      circle(x, y - 2, r, flash ? '#fff' : d.color, '#155a68', 1.3);
+      tri(x - r, y - 6, x, y - r - 16, x + r, y - 6, '#1b6f80'); circle(x, y - 1, r * .42, '#f2d2a4');
+      ctx.strokeStyle = '#8b6b3a'; ctx.lineWidth = 2.4; ctx.beginPath(); ctx.moveTo(x + f * (r + 3), y + 8); ctx.lineTo(x + f * (r + 3), y - 16); ctx.stroke();
+      circle(x + f * (r + 3), y - 18, 4, '#7fe0ff', '#fff', 1);
+    } else {
+      circle(x, y - 2, r, flash ? '#fff' : d.color, '#4a2f78', 1.3);
+      for (let i = -1; i <= 1; i++) tri(x + i * 5 - 2, y - r + 1, x + i * 6, y - r - 11, x + i * 5 + 3, y - r + 1, ['#e0523f', '#f0b93a', '#4da35a'][i + 1]);
+      circle(x, y - 1, r * .42, '#f2d2a4');
+      for (let i = 0; i < 2; i++) { const a = S.t * 3 + i * 3.14; circle(x + Math.cos(a) * (r + 6), y - 4 + Math.sin(a) * 5, 3, '#d9b8ff', '#fff', 1); }
+    }
+    if (s.rageT > 0) { ctx.globalAlpha = .35; circle(x, y - 2, r + 6, '#ff5a3a'); ctx.globalAlpha = 1; }
+    if (s.hp < s.max) hpBar(x, y - r - (d.look === 'knight' || d.look === 'orc' ? 16 : 14), 26, s.hp / s.max, '#59c46a');
+  }
+  label(d.name, x, (s.fly ? y + 26 : y + r + 13));
+}
+function drawEnemy(e) {
+  const x = e.x, r = e.r, f = e.face, bob = Math.sin(e.ph) * 1.6, lift = e.fly ? -24 : 0;
+  ell(x, e.y + r * .85, r * 1.05, r * .42, 'rgba(0,0,0,.28)');
+  ctx.save(); ctx.translate(x, e.y + bob + lift);
+  const T = e.type, fl = Math.sin(e.ph * 2.2);
+  const base = { grunt: '#5f9440', raider: '#7fae4c', shield: '#4c7d36', berserk: '#6f9a3a', shaman: '#5a8a44', warlock: '#5f9440', gryph: '#5f9440', chief: '#3e6a2c' }[T];
+  const body = e.flash > 0 ? '#fff' : base;
+  if (T === 'gryph') {
+    tri(-r * .3, 2, -r * 2.3, -10 - fl * 9, -r * .4, 9, '#a37f4a'); tri(r * .3, 2, r * 2.3, -10 - fl * 9, r * .4, 9, '#a37f4a');
+    ell(0, 6, r * 1.3, r * .7, e.flash > 0 ? '#fff' : '#8a6a3c');
+    circle(f * r * 1.15, 4, r * .48, '#8a6a3c'); tri(f * r * 1.5, 3, f * r * 2.1, 5, f * r * 1.5, 8, '#e8c04a');
+    circle(0, -r * .5, r * .75, body, '#274a1a', 1.2);
+    circle(-r * .28, -r * .6, r * .2, '#fff'); circle(r * .28, -r * .6, r * .2, '#fff'); circle(-r * .28 + f, -r * .6, r * .09, '#b01818'); circle(r * .28 + f, -r * .6, r * .09, '#b01818');
+  } else {
+    if (T === 'shield' || T === 'chief') rrect(f * (r * .55) - 4, -r * .9, 9, r * 1.5, 3, '#8b8f99', '#4d515a');
+    if (T === 'warlock') { tri(-r * 1.1, r * .9, 0, -r * 1.2, r * 1.1, r * .9, e.flash > 0 ? '#fff' : '#4f3f86'); }
+    if (T === 'shaman') { tri(-r * 1.05, r * .9, 0, -r * 1.1, r * 1.05, r * .9, e.flash > 0 ? '#fff' : '#6b4a2e'); }
+    circle(0, -r * .25, T === 'warlock' || T === 'shaman' ? r * .72 : r, body, '#274a1a', 1.3);
+    if (T === 'raider') { ctx.fillStyle = '#b8342a'; ctx.fillRect(-r, -r * .85, r * 2, 3.5); }
+    if (T === 'berserk') { ctx.strokeStyle = '#c2483a'; ctx.lineWidth = 2.2; ctx.beginPath(); ctx.moveTo(-r * .8, -r * .8); ctx.lineTo(-r * .3, -r * .1); ctx.moveTo(r * .8, -r * .8); ctx.lineTo(r * .3, -r * .1); ctx.stroke(); tri(-r * .35, -r * 1.15, 0, -r * 1.9, r * .35, -r * 1.15, '#c2483a'); }
+    if (T === 'chief') { ctx.fillStyle = '#7a7d86'; ctx.beginPath(); ctx.arc(0, -r * .5, r * .95, Math.PI, 0); ctx.fill(); tri(-r, -r * .6, -r - 6, -r * 1.6, -r * .55, -r * 1.05, '#e9e2cc'); tri(r, -r * .6, r + 6, -r * 1.6, r * .55, -r * 1.05, '#e9e2cc'); }
+    const er = T === 'warlock' || T === 'shaman' ? r * .72 : r;
+    circle(-er * .35, -er * .3 - r * .0, er * .22, '#fff'); circle(er * .35, -er * .3, er * .22, '#fff');
+    circle(-er * .35 + f, -er * .3, er * .1, T === 'warlock' ? '#c48bff' : '#b01818'); circle(er * .35 + f, -er * .3, er * .1, T === 'warlock' ? '#c48bff' : '#b01818');
+    if (T !== 'warlock' && T !== 'shaman') { tri(-r * .3, r * .1, -r * .12, r * .1, -r * .22, -r * .18, '#f3efe0'); tri(r * .3, r * .1, r * .12, r * .1, r * .22, -r * .18, '#f3efe0'); }
+    if (T === 'shaman') { ctx.strokeStyle = '#6b4a2e'; ctx.lineWidth = 2.4; ctx.beginPath(); ctx.moveTo(f * r * 1.1, r * .9); ctx.lineTo(f * r * 1.1, -r * 1.3); ctx.stroke(); circle(f * r * 1.1, -r * 1.5, 4, '#6ff0b0', '#fff', 1); }
+    else if (T === 'warlock') { const a = S.t * 3 + e.ph; circle(Math.cos(a) * r * 1.3, -r * .4 + Math.sin(a) * 4, 3.4, '#c48bff', '#fff', 1); }
+    else {
+      ctx.strokeStyle = '#4a3220'; ctx.lineWidth = 2.6; ctx.beginPath(); ctx.moveTo(-f * (r * .9), r * .2); ctx.lineTo(-f * (r * 1.5), -r * .9); ctx.stroke();
+      tri(-f * (r * 1.5), -r * .9, -f * (r * 1.9), -r * .7, -f * (r * 1.4), -r * 1.3, '#9aa0a8');
+      if (T === 'berserk') { ctx.beginPath(); ctx.moveTo(f * (r * .9), r * .2); ctx.lineTo(f * (r * 1.5), -r * .9); ctx.stroke(); tri(f * (r * 1.5), -r * .9, f * (r * 1.9), -r * .7, f * (r * 1.4), -r * 1.3, '#9aa0a8'); }
+    }
+  }
+  if (e.ice > 0) { ctx.globalAlpha = .5; circle(0, -r * .25, r * 1.15, '#a8e4ff'); ctx.globalAlpha = 1; }
+  ctx.restore();
+  if (e.burn > 0) { ctx.globalAlpha = .8; tri(x - 4, e.y + lift - r * .3, x, e.y + lift - r * 1.5 - Math.sin(S.t * 14) * 2, x + 4, e.y + lift - r * .3, '#ff8a2a'); ctx.globalAlpha = 1; }
+  if (e.stun > 0 && e.ice <= 0) { for (let i = 0; i < 3; i++) { const a = S.t * 5 + i * 2.1; circle(x + Math.cos(a) * 9, e.y + lift - r * 1.5 + Math.sin(a) * 3, 2.4, '#ffe27a'); } }
+  if (e.hp < e.max) hpBar(x, e.y + lift - r - 12 + bob, Math.max(20, r * 2), e.hp / e.max, e.type === 'chief' ? '#e0523f' : '#d94a3a');
+}
+function drawProj(p) {
+  if (p.k === 'arrow') { ctx.save(); ctx.translate(p.x, p.y); ctx.rotate(p.ang); ctx.strokeStyle = p.big ? '#ffd24a' : '#4b2f14'; ctx.lineWidth = p.big ? 3.4 : 2; ctx.beginPath(); ctx.moveTo(p.big ? -16 : -9, 0); ctx.lineTo(7, 0); ctx.stroke(); tri(7, -3.5, 13, 0, 7, 3.5, p.big ? '#fff2b0' : '#cfd3d8'); ctx.restore(); }
+  else if (p.k === 'orb') { ctx.globalAlpha = .3; circle(p.x, p.y, 10, p.col || '#d9c2ff'); ctx.globalAlpha = 1; circle(p.x, p.y, 5, p.col || '#c9a6ff', '#fff', 1); }
+  else if (p.k === 'shell') { const f = p.t / p.dur; ell(p.sx + (p.tx - p.sx) * f, p.sy + (p.ty - p.sy) * f + 4, 6, 2.5, 'rgba(0,0,0,.25)'); circle(p.x, p.y, 5, '#2b2a30', '#777', 1); }
+  else if (p.k === 'meteor') {
+    ctx.strokeStyle = 'rgba(255,170,60,.7)'; ctx.lineWidth = 7; ctx.lineCap = 'round'; ctx.beginPath(); ctx.moveTo(p.x, p.y); ctx.lineTo(p.x + 46, p.y - 46); ctx.stroke();
+    circle(p.x, p.y, 11, '#ff8a2a', '#ffd27a', 2); circle(p.x - 2, p.y - 2, 5, '#fff2c0');
+    ell(p.tx, p.ty + 4, 16, 6, 'rgba(0,0,0,.25)');
+  }
+}
+function drawFx(f) {
+  const k = f.t / f.dur;
+  if (f.k === 'ring') { ctx.globalAlpha = 1 - k; ctx.lineWidth = 3; ctx.strokeStyle = f.color; ctx.beginPath(); ctx.arc(f.x, f.y, f.max * (.25 + .75 * k), 0, 7); ctx.stroke(); ctx.globalAlpha = .12 * (1 - k); ctx.fillStyle = f.color; ctx.fill(); ctx.globalAlpha = 1; }
+  else if (f.k === 'text') { ctx.globalAlpha = 1 - k * k; ctx.font = '800 14px Nunito, system-ui, sans-serif'; ctx.textAlign = 'center'; ctx.lineWidth = 3; ctx.strokeStyle = 'rgba(40,25,0,.75)'; ctx.strokeText(f.txt, f.x, f.y - k * 22); ctx.fillStyle = f.color; ctx.fillText(f.txt, f.x, f.y - k * 22); ctx.globalAlpha = 1; }
+}
+function rallyFlag(x, y) {
+  ctx.strokeStyle = '#3d2614'; ctx.lineWidth = 2; ctx.beginPath(); ctx.moveTo(x, y + 4); ctx.lineTo(x, y - 24); ctx.stroke();
+  tri(x, y - 24, x + 15, y - 19, x, y - 13, '#2f6fc0');
+  ell(x, y + 5, 9, 3.5, 'rgba(0,0,0,.3)');
+}
+
+function render() {
+  ctx.clearRect(0, 0, W, H);
+  ctx.drawImage(bg, 0, 0, W, H);
+  for (const pad of S.pads) drawPad(pad);
+  const focus = S.sel ? S.sel.tower : (S.hoverPad && S.hoverPad.tower);
+  if (focus) {
+    if (focus.type === 'barracks') {
+      ctx.globalAlpha = .13; ctx.fillStyle = '#7fb4ff'; ctx.beginPath(); ctx.arc(focus.x, focus.y, focus.range, 0, 7); ctx.fill(); ctx.globalAlpha = 1;
+      dashed(focus.x, focus.y, focus.range, 'rgba(140,190,255,.95)');
+      dashed(focus.rally.x, focus.rally.y, 20, 'rgba(255,255,255,.7)');
+      rallyFlag(focus.rally.x, focus.rally.y);
+    } else {
+      const st = TSTAT[focus.type][focus.level];
+      ctx.globalAlpha = .16; ctx.fillStyle = '#fff'; ctx.beginPath(); ctx.arc(focus.x, focus.y, st.range, 0, 7); ctx.fill(); ctx.globalAlpha = 1;
+      dashed(focus.x, focus.y, st.range, 'rgba(255,255,255,.7)');
+    }
+  }
+  const sh = S.heroes[S.selHero];
+  if (sh && !sh.dead) {
+    if (sh.def.range) dashed(sh.post.x, sh.post.y, sh.def.range, 'rgba(255,226,122,.5)');
+    if (hyp(sh.post.x - sh.x, sh.post.y - sh.y) > 8) { ctx.strokeStyle = 'rgba(255,226,122,.85)'; ctx.lineWidth = 2; ctx.beginPath(); ctx.moveTo(sh.post.x - 6, sh.post.y - 6); ctx.lineTo(sh.post.x + 6, sh.post.y + 6); ctx.moveTo(sh.post.x + 6, sh.post.y - 6); ctx.lineTo(sh.post.x - 6, sh.post.y + 6); ctx.stroke(); }
+  }
+  const items = [];
+  for (const t of S.towers) items.push([t.y, () => drawTower(t)]);
+  for (const s of S.soldiers) if (!s.dead) items.push([s.y + (s.fly ? 500 : 0), () => (s.hero ? drawHero(s) : drawSoldier(s))]);
+  for (const e of S.enemies) items.push([e.y + (e.fly ? 500 : 0), () => drawEnemy(e)]);
+  items.sort((a, b) => a[0] - b[0]);
+  for (const it of items) it[1]();
+  for (const p of S.projs) drawProj(p);
+  for (const f of S.fx) drawFx(f);
+  if (S.spell && mouse.x > -50) {
+    const sp = SPELLS[S.spell];
+    if (sp.aim === 'area') dashed(mouse.x, mouse.y, sp.r, 'rgba(255,190,90,.95)');
+    else { const n = nearestOnPath(mouse.x, mouse.y), ok = n.d <= 70; dashed(ok ? n.x : mouse.x, ok ? n.y : mouse.y, 26, ok ? 'rgba(170,205,255,.95)' : 'rgba(255,110,90,.95)'); }
+  }
+  for (const h of S.heroes) if (h.dead) { const t = h.def.name + ' вернётся через ' + Math.ceil(h.respawn) + ' с'; label(t, h.post.x, h.post.y - 22); }
+}
+
+/* ---------- интерфейс вокруг поля ---------- */
+const el = { lives: $('hudLives'), gold: $('hudGold'), wave: $('hudWave'), info: $('waveInfo'), toast: $('toast') };
+function setText(node, val) { val = String(val); if (node._t !== val) { node._t = val; node.textContent = val; } }
+function setLabel(btn, val) { const l = btn.querySelector('.lbl'); if (l && l._v !== val) { l._v = val; l.firstChild.nodeValue = val; } }
+function setCdEl(btn, f, armed) { const cd = btn.querySelector('.cd'); const v = f.toFixed(2); if (cd && cd._v !== v) { cd._v = v; cd.style.setProperty('--cd', v); } btn.classList.toggle('armed', !!armed); }
+function waveText(i) {
+  return WAVES[i].map(([type, n]) => ETYPES[type].name + (n > 1 ? ' ×' + n : '')).join(', ');
+}
+function syncUI() {
+  setText(el.lives, S.lives); setText(el.gold, S.gold);
+  setText(el.wave, 'Волна ' + S.wave + ' из ' + WAVES.length);
+  if (S.wave < WAVES.length) setText(el.info, (S.queue.length ? 'Орки выходят из лагеря. ' : '') + 'Впереди волна ' + (S.wave + 1) + ': ' + waveText(S.wave) + '.');
+  else setText(el.info, 'Последняя волна уже идёт.');
+  btnWave.disabled = !canStartWave();
+  setLabel(btnWave, S.wave >= WAVES.length ? 'Волны закончились' : 'Запустить волну ' + (S.wave + 1));
+  setLabel(btnSpeed, 'Скорость ×' + S.speed);
+  setLabel(btnPause, S.paused ? 'Продолжить' : 'Пауза');
+  ui.spellBtns.forEach((b) => { const id = b.getAttribute('data-id'); setCdEl(b, S.scd[id] / SPELLS[id].cd, S.spell === id); });
+  ui.heroCards.forEach((c, i) => {
+    const h = S.heroes[i]; if (!h) return;
+    c.classList.toggle('sel', S.selHero === i);
+    const bar = c.querySelector('.bar i'), ht = c.querySelector('.ht'), ab = c.querySelector('.abil');
+    bar.style.setProperty('--f', (h.dead ? 0 : h.hp / h.max * 100).toFixed(0) + '%');
+    setText(ht, h.dead ? 'вернётся через ' + Math.ceil(h.respawn) + ' с' : Math.ceil(h.hp) + ' из ' + h.max);
+    setCdEl(ab, S.hcd[i] / h.def.ab.cd, false);
+  });
+  const sp = S.spell && SPELLS[S.spell];
+  stage.classList.toggle('aiming', !!sp);
+  if (el.toast.textContent !== S.msg.text) el.toast.textContent = S.msg.text;
+  el.toast.classList.toggle('on', S.msg.t > 0);
+  refreshMenu();
+}
+
+/* ---------- цикл ---------- */
+function resize() {
+  dpr = Math.min(window.devicePixelRatio || 1, 2);
+  canvas.width = Math.round(W * dpr); canvas.height = Math.round(H * dpr);
+  ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+  bg = makeBG();
+  if (S && S.sel) placeMenu(S.sel.x, S.sel.y);
+}
+let last = 0;
+function frame(ts) {
+  const dt = Math.min(.05, (ts - last) / 1000 || 0); last = ts;
+  if (S && inPlay) {
+    if (!S.paused && !S.over) for (let i = 0; i < S.speed; i++) step(dt);
+    if (S.msg.t > 0) S.msg.t = Math.max(0, S.msg.t - dt);
+    render(); syncUI();
+  }
+  requestAnimationFrame(frame);
+}
+resize();
+window.addEventListener('resize', resize);
+cardsHTML(); prepStatus();
+window.__td = { newGame, startBattle, setLoadout, step, build, upgrade, sell, startWave, castSpell, armSpell, useAbility, placeRally, selectHero, render, syncUI, buildControls, get S() { return S; }, set inPlay(v) { inPlay = v; }, HEROES, SPELLS, WAVES, ETYPES, HERO_ORDER, SPELL_ORDER };
+requestAnimationFrame(frame);
+})();
+</script>
+</body>
+</html>
