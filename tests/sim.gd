@@ -8,7 +8,7 @@ extends Node
 ##   lazy    четыре башни без улучшений, без способностей
 ##   old, oldbar, nobar: старые порядки построек с первого этапа (без героев не считаются)
 ## Герои и заклинания через запятую: -- smart edrik,kara knights,meteors,wave
-## Здоровье орков можно подменить: HP_SCALE=1.3 godot ...
+## Здоровье орков можно подменить: HP_SCALE=1.3 godot ... Сложность: DIFFICULTY=novice|fighter|veteran
 
 var main: Node
 var mode := "smart"
@@ -43,6 +43,9 @@ func _ready() -> void:
 		for spec in order:
 			if spec[1] == "barracks":
 				spec[1] = "archer"
+	var level := OS.get_environment("DIFFICULTY")   # novice, fighter или veteran
+	if level != "":
+		Game.difficulty = level
 	var scale := OS.get_environment("HP_SCALE")
 	if scale != "":
 		Defs.hp_scale = float(scale)
@@ -58,8 +61,8 @@ func _process(delta: float) -> void:
 		var stars := 0
 		if g.over and g.lives > 0:
 			stars = 3 if g.lives >= 18 else (2 if g.lives >= 10 else 1)
-		print("РЕЗУЛЬТАТ hp=%.2f mode=%s героев=%s заклинаний=%s: %s, волна %d, жизни %d, убито %d, звёзды %d, время %d с" % [
-			Defs.hp_scale, mode, ",".join(Game.loadout_heroes), ",".join(Game.loadout_spells),
+		print("РЕЗУЛЬТАТ hp=%.2f сложность=%s mode=%s героев=%s заклинаний=%s: %s, волна %d, жизни %d, убито %d, звёзды %d, время %d с" % [
+			Defs.hp_scale, Game.difficulty, mode, ",".join(Game.loadout_heroes), ",".join(Game.loadout_spells),
 			"победа" if (g.over and g.lives > 0) else ("поражение" if g.over else "таймаут"),
 			g.wave, g.lives, g.kills, stars, int(elapsed)])
 		get_tree().quit(0)

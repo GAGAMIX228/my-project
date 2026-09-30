@@ -49,6 +49,6 @@ static func half_disc(ci: CanvasItem, center: Vector2, radius: float, color: Col
 
 ## Надпись с тёмной обводкой, чтобы читалась на любом фоне.
 static func label(ci: CanvasItem, pos: Vector2, text: String, size := 11) -> void:
-	var font := ThemeDB.fallback_font
+	var font := Ui.font()
 	ci.draw_string_outline(font, pos + Vector2(-60, 0), text, HORIZONTAL_ALIGNMENT_CENTER, 120, size, 4, Color(0, 0, 0, 0.7))
 	ci.draw_string(font, pos + Vector2(-60, 0), text, HORIZONTAL_ALIGNMENT_CENTER, 120, size, Color.WHITE)

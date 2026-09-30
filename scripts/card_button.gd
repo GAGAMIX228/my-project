@@ -48,7 +48,7 @@ func _draw() -> void:
 	if locked:
 		draw_circle(c, 27.0, Color(0.05, 0.04, 0.03, 0.6))
 		Icons.draw(self, "lock", c, 14.0)
-	var font := ThemeDB.fallback_font
+	var font := Ui.font()
 	var color := Ui.CREAM if not locked else Color("9c8d70")
 	# длинное название переносим на вторую строку
 	var lines := title.split(" ", false, 1) if title.length() > 9 else PackedStringArray([title])

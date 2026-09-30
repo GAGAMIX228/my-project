@@ -176,15 +176,31 @@ const FUTURE_TOWERS := [
 	["Палач", "Минотавры"], ["Гнездо дракона", "Драконы"],
 ]
 
-## Локации кампании (на карте). playable: уровень уже есть в игре. pos: место на карте.
+## Название игры. Рабочее: поменяй здесь, и оно изменится на заставке.
+const GAME_TITLE := "СТРАЖИ РАССВЕТА"
+const GAME_SUBTITLE := "Союз рас против Древней Тьмы"
+
+## Сложности. hp: во сколько раз здоровее орки (поверх hp_scale), gold: стартовое золото.
+## «Боец» это сложность, под которую подобран баланс.
+const DIFFICULTIES := {
+	"novice": {"name": "Новичок", "hp": 0.8, "gold": 260, "info": "Враги слабее, золота больше. Чтобы освоиться."},
+	"fighter": {"name": "Боец", "hp": 1.0, "gold": 220, "info": "Как задумано. Внимательная игра побеждает."},
+	"veteran": {"name": "Ветеран", "hp": 1.25, "gold": 200, "info": "Враги крепче, золота меньше. Для тех, кто уверен."},
+}
+const DIFFICULTY_ORDER := ["novice", "fighter", "veteran"]
+const SAVE_SLOTS := 3
+
+## Области карты: лес, затем другие земли, море и в конце кладбище некроманта.
+## Локации кампании. playable: уровень уже есть в игре. pos: место на карте. biome: где стоит (для рисунка).
 const LEVELS := [
-	{"id": "orcs", "name": "Земли орков", "race": "Орки", "playable": true, "pos": Vector2(70, 215)},
-	{"id": "ogres", "name": "Горы огров", "race": "Огры", "playable": false, "pos": Vector2(170, 115)},
-	{"id": "goblins", "name": "Болота гоблинов", "race": "Гоблины", "playable": false, "pos": Vector2(270, 215)},
-	{"id": "octopus", "name": "Глубины", "race": "Осьминоги", "playable": false, "pos": Vector2(370, 115)},
-	{"id": "shamans", "name": "Земли предков", "race": "Шаманы", "playable": false, "pos": Vector2(470, 215)},
-	{"id": "yetis", "name": "Ледяные пики", "race": "Йети", "playable": false, "pos": Vector2(570, 115)},
-	{"id": "gnomes", "name": "Подгорье", "race": "Гномы", "playable": false, "pos": Vector2(670, 215)},
-	{"id": "minotaurs", "name": "Лабиринт", "race": "Минотавры", "playable": false, "pos": Vector2(770, 115)},
-	{"id": "dragons", "name": "Гнездовье драконов", "race": "Драконы", "playable": false, "pos": Vector2(870, 215)},
+	{"id": "orcs", "name": "Орочий лес", "race": "Орки", "biome": "forest", "playable": true, "pos": Vector2(90, 300)},
+	{"id": "goblins", "name": "Гоблинские топи", "race": "Гоблины", "biome": "swamp", "playable": false, "pos": Vector2(190, 395)},
+	{"id": "shamans", "name": "Рощи предков", "race": "Шаманы", "biome": "forest", "playable": false, "pos": Vector2(280, 290)},
+	{"id": "ogres", "name": "Холмы огров", "race": "Огры", "biome": "hills", "playable": false, "pos": Vector2(345, 185)},
+	{"id": "yetis", "name": "Ледяные пики", "race": "Йети", "biome": "snow", "playable": false, "pos": Vector2(455, 110)},
+	{"id": "gnomes", "name": "Подгорье", "race": "Гномы", "biome": "snow", "playable": false, "pos": Vector2(550, 215)},
+	{"id": "minotaurs", "name": "Лабиринт песков", "race": "Минотавры", "biome": "desert", "playable": false, "pos": Vector2(620, 340)},
+	{"id": "dragons", "name": "Вулканы драконов", "race": "Драконы", "biome": "volcano", "playable": false, "pos": Vector2(715, 195)},
+	{"id": "octopus", "name": "Залив глубин", "race": "Осьминоги", "biome": "sea", "playable": false, "pos": Vector2(775, 405)},
+	{"id": "necromancer", "name": "Кладбище Тьмы", "race": "Нежить", "biome": "grave", "playable": false, "pos": Vector2(880, 270)},
 ]

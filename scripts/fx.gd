@@ -57,6 +57,6 @@ func _draw() -> void:
 		c.a = 1.0 - t * t
 		var shadow := Color(0.16, 0.1, 0.0, c.a * 0.75)
 		var pos := Vector2(-30, -t * 22.0)
-		var font := ThemeDB.fallback_font
+		var font := Ui.font()
 		draw_string(font, pos + Vector2(1, 1), text, HORIZONTAL_ALIGNMENT_CENTER, 60, 15, shadow)
 		draw_string(font, pos, text, HORIZONTAL_ALIGNMENT_CENTER, 60, 15, c)

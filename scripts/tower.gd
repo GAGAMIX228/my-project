@@ -6,6 +6,7 @@ var kind := "archer"
 var level := 1  # от 1 до 3
 var invested := 0  # сколько золота вложено (для продажи)
 var show_range := false
+var show_level := true   # жёлтые точки уровня под башней
 var rally := Vector2.ZERO           # только у казармы: куда встают бойцы
 var soldiers: Array[Soldier] = []   # только у казармы
 var _cd := 0.3
@@ -173,8 +174,9 @@ func _draw() -> void:
 			_draw_mage()
 		"mortar":
 			_draw_mortar()
-	for i in level:
-		draw_circle(Vector2(-(level - 1) * 5.0 + i * 10.0, 13), 3.0, Color("f4c542"))
+	if show_level:
+		for i in level:
+			draw_circle(Vector2(-(level - 1) * 5.0 + i * 10.0, 13), 3.0, Color("f4c542"))
 
 
 func _draw_archer() -> void:

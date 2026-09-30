@@ -1,6 +1,6 @@
 extends Node
 ## Скриншоты для проверки глазами. Нужен виртуальный экран (см. CLAUDE.md, раздел 14).
-## Запуск: ... res://tests/shots.tscn -- battle, campaign (карта и вкладки), menu (круговое меню башен), gallery (все герои)
+## Запуск: ... res://tests/shots.tscn -- title (заставка и окна), battle, campaign (карта и вкладки), menu (круговое меню башен), gallery (все герои)
 ## Куда сохранять: переменная окружения SHOTS_DIR, по умолчанию папка user://shots.
 
 var main: Node
@@ -23,7 +23,15 @@ func _ready() -> void:
 	var heroes := OS.get_environment("SHOTS_HEROES")   # например ashgar,morven
 	if heroes != "":
 		Game.loadout_heroes.assign(Array(heroes.split(",")))
-	var scene := "res://scenes/campaign.tscn" if mode == "campaign" else "res://scenes/main.tscn"
+	var scene := "res://scenes/main.tscn"
+	if mode == "campaign":
+		scene = "res://scenes/campaign.tscn"
+	elif mode == "title":
+		scene = "res://scenes/title.tscn"
+		Game.persist = true
+		Game.new_slot(1, "fighter")
+		Game.level_stars["orcs"] = 3
+		Game.save_progress()
 	main = (load(scene) as PackedScene).instantiate()
 	add_child(main)
 
@@ -54,20 +62,48 @@ func _process(delta: float) -> void:
 			_shot("gallery")
 			get_tree().quit()
 		return
-	if mode == "campaign":
-		if step == 0 and t > 0.4:
-			_shot("campaign_heroes")
-			main._panel.assign("hero", "kara")
-			main._panel.select_slot("hero", 0)
-			main._panel.show_tab("tower")
+	if mode == "title":
+		if step == 0 and t > 0.6:
+			_shot("title")
+			main.entered.disconnect(main._go_campaign)
+			main.show_slots()
 			step = 1
 			t = 0.0
 		elif step == 1 and t > 0.3:
-			_shot("campaign_towers")
-			main._panel.show_tab("spell")
+			_shot("slots")
+			main.show_difficulty(2)
 			step = 2
 			t = 0.0
 		elif step == 2 and t > 0.3:
+			_shot("difficulty")
+			main.show_settings()
+			step = 3
+			t = 0.0
+		elif step == 3 and t > 0.3:
+			_shot("settings")
+			Game.delete_slot(1)
+			get_tree().quit()
+		return
+	if mode == "campaign":
+		if step == 0 and t > 0.5:
+			Game.level_stars["orcs"] = 2
+			main._select("orcs")
+			_shot("campaign_map")
+			main.toggle_tab("hero")
+			step = 1
+			t = 0.0
+		elif step == 1 and t > 0.3:
+			_shot("campaign_heroes")
+			main._panel.assign("hero", "kara")
+			main.toggle_tab("tower")
+			step = 2
+			t = 0.0
+		elif step == 2 and t > 0.3:
+			_shot("campaign_towers")
+			main.toggle_tab("spell")
+			step = 3
+			t = 0.0
+		elif step == 3 and t > 0.3:
 			_shot("campaign_spells")
 			get_tree().quit()
 		return

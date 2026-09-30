@@ -81,6 +81,21 @@ static func draw(ci: CanvasItem, id: String, c: Vector2, r: float) -> void:
 			_poly(ci, c, r, [Vector2(-0.8, 0), Vector2(-0.1, -0.6), Vector2(-0.1, -0.22), Vector2(0.75, -0.22), Vector2(0.75, 0.22), Vector2(-0.1, 0.22), Vector2(-0.1, 0.6)], Color("f6e7c1"))
 		"up":
 			_poly(ci, c, r, [Vector2(0, -0.85), Vector2(0.75, 0.0), Vector2(0.28, 0.0), Vector2(0.28, 0.8), Vector2(-0.28, 0.8), Vector2(-0.28, 0.0), Vector2(-0.75, 0.0)], Color("7bd88f"))
+		"gear":
+			for i in 8:
+				var a := TAU * i / 8.0
+				ci.draw_line(c + Vector2(cos(a), sin(a)) * r * 0.55, c + Vector2(cos(a), sin(a)) * r * 0.92, Color("f6e7c1"), maxf(2.5, r * 0.3))
+			ci.draw_circle(c, r * 0.62, Color("f6e7c1"))
+			ci.draw_circle(c, r * 0.26, Color("4a3322"))
+		"close":
+			ci.draw_line(_p(c, r, -0.6, -0.6), _p(c, r, 0.6, 0.6), Color("f6e7c1"), maxf(2.5, r * 0.26))
+			ci.draw_line(_p(c, r, 0.6, -0.6), _p(c, r, -0.6, 0.6), Color("f6e7c1"), maxf(2.5, r * 0.26))
+		"trash":
+			ci.draw_line(_p(c, r, -0.7, -0.5), _p(c, r, 0.7, -0.5), Color("f6e7c1"), maxf(2.0, r * 0.2))
+			ci.draw_rect(Rect2(_p(c, r, -0.22, -0.8), Vector2(r * 0.44, r * 0.3)), Color("f6e7c1"))
+			_poly(ci, c, r, [Vector2(-0.52, -0.35), Vector2(0.52, -0.35), Vector2(0.42, 0.85), Vector2(-0.42, 0.85)], Color("f6e7c1"))
+			for x in [-0.2, 0.2]:
+				ci.draw_line(_p(c, r, x, -0.15), _p(c, r, x, 0.65), Color("4a3322"), maxf(1.5, r * 0.14))
 		"lock":
 			ci.draw_arc(_p(c, r, 0, -0.2), r * 0.42, PI, TAU, 12, Color("cfc4a8"), maxf(2.0, r * 0.18), true)
 			ci.draw_rect(Rect2(_p(c, r, -0.62, -0.2), Vector2(r * 1.24, r * 0.95)), Color("b7a97f"))

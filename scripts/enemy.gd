@@ -37,7 +37,7 @@ var _origin := Vector2.ZERO
 func setup(enemy_type: String) -> void:
 	type = enemy_type
 	var def: Dictionary = Defs.ENEMIES[type]
-	max_hp = float(def["hp"]) * Defs.hp_scale
+	max_hp = float(def["hp"]) * Defs.hp_scale * Game.hp_mult()
 	hp = max_hp
 	speed = float(def["speed"])
 	armor = float(def["armor"])

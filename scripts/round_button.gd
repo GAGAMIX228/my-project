@@ -7,6 +7,8 @@ extends Button
 var icon_id := ""            # см. Icons; "hero:<id>" рисует портрет героя
 var badge := ""              # цифра клавиши в углу
 var caption := ""            # подпись под кнопкой (цена)
+var caption_size := 13
+var caption_color := Ui.GOLD
 var center_text := ""        # текст в центре вместо иконки (например ×2)
 var cooldown := 0.0          # доля перезарядки: 1 сразу после применения, 0 готово
 var cooldown_text := ""      # число секунд поверх сектора
@@ -65,7 +67,7 @@ func _draw() -> void:
 	if icon_id != "" and not icon_id.begins_with("hero:"):
 		Icons.draw(self, icon_id, c, r * 0.68)
 	if center_text != "":
-		var font := ThemeDB.fallback_font
+		var font := Ui.font()
 		var fs := int(r * 0.8)
 		draw_string_outline(font, Vector2(0, c.y + fs * 0.35), center_text, HORIZONTAL_ALIGNMENT_CENTER, size.x, fs, 4, Color(0, 0, 0, 0.8))
 		draw_string(font, Vector2(0, c.y + fs * 0.35), center_text, HORIZONTAL_ALIGNMENT_CENTER, size.x, fs, Ui.CREAM)
@@ -80,7 +82,7 @@ class Overlay extends Control:
 	func _draw() -> void:
 		var c := size * 0.5
 		var r := minf(size.x, size.y) * 0.5 - 2.0
-		var font := ThemeDB.fallback_font
+		var font := Ui.font()
 		if button.cooldown > 0.0:
 			# тёмный сектор: остаток перезарядки идёт по часовой стрелке от верха
 			var pts := PackedVector2Array([c])
@@ -105,5 +107,6 @@ class Overlay extends Control:
 			draw_arc(bp, 8.0, 0.0, TAU, 16, Ui.GOLD_DARK, 1.5, true)
 			draw_string(font, bp + Vector2(-8, 4.5), button.badge, HORIZONTAL_ALIGNMENT_CENTER, 16, 12, Ui.CREAM)
 		if button.caption != "":
-			draw_string_outline(font, Vector2(-20, size.y + 13.0), button.caption, HORIZONTAL_ALIGNMENT_CENTER, size.x + 40.0, 13, 4, Color(0, 0, 0, 0.85))
-			draw_string(font, Vector2(-20, size.y + 13.0), button.caption, HORIZONTAL_ALIGNMENT_CENTER, size.x + 40.0, 13, Ui.GOLD)
+			var cy := size.y + button.caption_size
+			draw_string_outline(font, Vector2(-30, cy), button.caption, HORIZONTAL_ALIGNMENT_CENTER, size.x + 60.0, button.caption_size, 5, Color(0.12, 0.06, 0.02, 0.95))
+			draw_string(font, Vector2(-30, cy), button.caption, HORIZONTAL_ALIGNMENT_CENTER, size.x + 60.0, button.caption_size, button.caption_color)

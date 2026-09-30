@@ -25,38 +25,90 @@ var loadout_heroes: Array[String] = ["edrik", "tarn"]
 var loadout_spells: Array[String] = ["knights", "meteors", "frost"]
 var loadout_towers: Array[String] = ["archer", "barracks", "mage", "mortar"]
 
-# Кампания: какой уровень идёт и сколько звёзд получено на каждом.
+# Кампания: ячейка сохранения, сложность и звёзды на каждом уровне.
 var level_id := "orcs"
 var level_stars := {}
-## Сохранять ли прогресс на диск. Автотесты выключают, чтобы не портить сохранение игрока.
+var difficulty := "fighter"
+var slot := 0          # номер ячейки от 1 до 3; 0 значит «без ячейки» (автотесты), тогда ничего не сохраняется
+## Сохранять ли прогресс на диск. Автотесты выключают, чтобы не портить сохранения игрока.
 var persist := true
 
-const SAVE_PATH := "user://progress.cfg"
+
+func slot_path(n: int) -> String:
+	return "user://save_%d.cfg" % n
 
 
-func _ready() -> void:
-	load_progress()
-
-
-func load_progress() -> void:
+## Что лежит в ячейке: есть ли сохранение, сложность, сумма звёзд.
+func slot_info(n: int) -> Dictionary:
 	var cfg := ConfigFile.new()
-	if cfg.load(SAVE_PATH) != OK:
-		return
+	if cfg.load(slot_path(n)) != OK:
+		return {"exists": false}
+	var sum := 0
+	for id: String in cfg.get_section_keys("stars"):
+		sum += int(cfg.get_value("stars", id, 0))
+	return {"exists": true, "difficulty": str(cfg.get_value("game", "difficulty", "fighter")), "stars": sum}
+
+
+## Начинает новую игру в ячейке (старое сохранение затирается).
+func new_slot(n: int, new_difficulty: String) -> void:
+	slot = n
+	difficulty = new_difficulty
+	level_stars = {}
+	save_progress()
+
+
+## Загружает игру из ячейки. Возвращает false, если она пуста.
+func load_slot(n: int) -> bool:
+	var cfg := ConfigFile.new()
+	if cfg.load(slot_path(n)) != OK:
+		return false
+	slot = n
+	difficulty = str(cfg.get_value("game", "difficulty", "fighter"))
+	level_stars = {}
 	for id: String in cfg.get_section_keys("stars"):
 		level_stars[id] = int(cfg.get_value("stars", id, 0))
+	return true
+
+
+func delete_slot(n: int) -> void:
+	if FileAccess.file_exists(slot_path(n)):
+		DirAccess.remove_absolute(ProjectSettings.globalize_path(slot_path(n)))
+	if slot == n:
+		slot = 0
+		level_stars = {}
 
 
 func save_progress() -> void:
-	if not persist:
+	if not persist or slot == 0:
 		return
 	var cfg := ConfigFile.new()
+	cfg.set_value("game", "difficulty", difficulty)
 	for id: String in level_stars:
 		cfg.set_value("stars", id, level_stars[id])
-	cfg.save(SAVE_PATH)
+	cfg.save(slot_path(slot))
+
+
+func total_stars() -> int:
+	var sum := 0
+	for v in level_stars.values():
+		sum += int(v)
+	return sum
+
+
+## Во сколько раз здоровее враги на выбранной сложности.
+func hp_mult() -> float:
+	return float(Defs.DIFFICULTIES[difficulty]["hp"])
+
+
+## Открыт ли уровень на карте: первый всегда, остальные после хотя бы одной звезды на предыдущем.
+func level_unlocked(index: int) -> bool:
+	if index <= 0:
+		return true
+	return int(level_stars.get(Defs.LEVELS[index - 1]["id"], 0)) > 0
 
 
 func reset() -> void:
-	gold = Defs.START_GOLD
+	gold = int(Defs.DIFFICULTIES[difficulty]["gold"])
 	lives = Defs.START_LIVES
 	wave = 0
 	kills = 0

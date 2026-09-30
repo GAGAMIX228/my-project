@@ -41,6 +41,55 @@ func _key(code: Key) -> void:
 	get_viewport().push_input(ev, true)
 
 
+## Ячейки сохранения, сложности и открытие уровней.
+func _test_saves() -> void:
+	Game.persist = true
+	Game.delete_slot(3)
+	check(not Game.slot_info(3)["exists"], "пустая ячейка определяется")
+	Game.new_slot(3, "veteran")
+	Game.level_stars["orcs"] = 2
+	Game.save_progress()
+	var info := Game.slot_info(3)
+	check(info["exists"] and info["difficulty"] == "veteran" and info["stars"] == 2, "ячейка помнит сложность и звёзды")
+	Game.level_stars = {}
+	Game.difficulty = "fighter"
+	check(Game.load_slot(3) and Game.difficulty == "veteran" and Game.level_stars.get("orcs", 0) == 2, "загрузка возвращает сложность и звёзды")
+	check(Game.level_unlocked(0) and Game.level_unlocked(1) and not Game.level_unlocked(2), "звезда на уровне открывает следующий")
+	Game.delete_slot(3)
+	check(not Game.slot_info(3)["exists"], "удалённая ячейка пуста")
+	Game.persist = false
+	Game.slot = 0
+	Game.level_stars = {}
+	check(not Game.level_unlocked(1), "без звёзд второй уровень закрыт")
+	Game.difficulty = "novice"
+	Game.reset()
+	check(Game.gold == 260 and is_equal_approx(Game.hp_mult(), 0.8), "Новичок: больше золота, враги слабее")
+	Game.difficulty = "veteran"
+	Game.reset()
+	check(Game.gold == 200 and is_equal_approx(Game.hp_mult(), 1.25), "Ветеран: меньше золота, враги крепче")
+	Game.difficulty = "fighter"
+	Game.reset()
+	check(Game.gold == 220 and is_equal_approx(Game.hp_mult(), 1.0), "Боец: стандартные значения")
+
+
+## Заставка: создание игры в пустой ячейке.
+func _test_title() -> void:
+	var title: Control = (load("res://scenes/title.tscn") as PackedScene).instantiate()
+	add_child(title)
+	title.entered.disconnect(title._go_campaign)
+	Game.persist = true
+	Game.delete_slot(2)
+	title.show_slots()
+	check(title._modal != null, "«Начать» открывает окно выбора ячейки")
+	title.show_difficulty(2)
+	title.create_game(2, "novice")
+	check(Game.slot == 2 and Game.difficulty == "novice" and Game.slot_info(2)["exists"], "новая игра создаёт ячейку со сложностью")
+	Game.delete_slot(2)
+	Game.persist = false
+	Game.difficulty = "fighter"
+	title.queue_free()
+
+
 func _process(_delta: float) -> void:
 	frames += 1
 	if frames < 3:
@@ -48,6 +97,7 @@ func _process(_delta: float) -> void:
 	frames = 0
 	match step:
 		0:
+			_test_saves()
 			# карта кампании и панель сборки
 			Game.persist = false
 			Game.loadout_heroes.assign(["edrik", "tarn"])
@@ -81,7 +131,12 @@ func _process(_delta: float) -> void:
 			check(not prep._go.disabled and prep.selected == "orcs", "уровень орков выбран и доступен")
 			prep._select("ogres")
 			check(prep._go.disabled, "закрытый уровень нельзя запустить")
+			prep.toggle_tab("spell")
+			check(prep._panel.visible and prep._panel.kind == "spell", "кнопка «Заклинания» открывает раздел заклинаний")
+			prep.toggle_tab("spell")
+			check(not prep._panel.visible, "повторное нажатие закрывает раздел")
 			prep.queue_free()
+			_test_title()
 			step = 2
 		2:
 			Game.loadout_heroes.assign(["edrik", "ishta"])

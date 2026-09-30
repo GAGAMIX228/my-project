@@ -1,10 +1,11 @@
 class_name LoadoutPanel
 extends PanelContainer
-## Панель сборки внизу экрана карты: вкладки «Герои», «Башни», «Заклинания».
-## Слева слоты (что идёт в бой), справа коллекция карточек. Нажми на слот, потом на карточку: карточка займёт этот слот.
+## Раздел сборки на экране карты: герои, башни или заклинания (какой именно, задаёт show_tab).
+## Открывается кнопками нижней панели. Слева слоты (что идёт в бой), справа коллекция карточек. Нажми на слот, потом на карточку: карточка займёт этот слот.
 ## Если карточка уже стоит в другом слоте, они поменяются местами. Выбор хранится в Game.loadout_*.
 
 signal changed
+signal closed
 
 const LIMITS := {"hero": 2, "tower": 5, "spell": 3}
 const TAB_NAMES := {"hero": "Герои", "tower": "Башни", "spell": "Заклинания"}
@@ -17,7 +18,7 @@ const HINTS := {
 var kind := "hero"
 var active := {"hero": 0, "spell": 0, "tower": 0}   # слот, в который попадёт следующая выбранная карточка
 
-var _tabs := {}
+var _title: Label
 var _slots_row: HBoxContainer
 var _cards_row: HBoxContainer
 var _info_title: Label
@@ -28,17 +29,14 @@ func _ready() -> void:
 	var box := VBoxContainer.new()
 	box.add_theme_constant_override("separation", 5)
 	add_child(box)
-	var tabs := HBoxContainer.new()
-	tabs.add_theme_constant_override("separation", 6)
-	box.add_child(tabs)
-	for k in ["hero", "tower", "spell"]:
-		var b := Button.new()
-		b.toggle_mode = true
-		b.focus_mode = Control.FOCUS_NONE
-		b.add_theme_font_size_override("font_size", 15)
-		b.pressed.connect(show_tab.bind(k))
-		tabs.add_child(b)
-		_tabs[k] = b
+	var head := HBoxContainer.new()
+	box.add_child(head)
+	_title = Ui.label("", 20, Ui.GOLD)
+	_title.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	head.add_child(_title)
+	var close := RoundButton.new("close", 30.0)
+	close.pressed.connect(func(): closed.emit())
+	head.add_child(close)
 	var body := HBoxContainer.new()
 	body.add_theme_constant_override("separation", 10)
 	box.add_child(body)
@@ -131,10 +129,7 @@ func _describe(k: String, id: String) -> Dictionary:
 
 
 func _rebuild() -> void:
-	for k in _tabs:
-		var b: Button = _tabs[k]
-		b.set_pressed_no_signal(k == kind)
-		b.text = "%s  %d/%d" % [TAB_NAMES[k], _loadout(k).size(), LIMITS[k]]
+	_title.text = "%s: выбрано %d из %d" % [TAB_NAMES[kind], _loadout(kind).size(), LIMITS[kind]]
 	for row: Control in [_slots_row, _cards_row]:
 		for c in row.get_children():
 			row.remove_child(c)

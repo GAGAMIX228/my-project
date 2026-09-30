@@ -16,6 +16,18 @@ const GREEN := Color("59c46a")
 const RED := Color("d8493a")
 
 
+static var _font: Font
+
+
+## Шрифт игры (Russo One, лицензия OFL, лежит в assets/fonts).
+static func font() -> Font:
+	if _font == null:
+		_font = load("res://assets/fonts/RussoOne-Regular.ttf") as Font
+		if _font == null:
+			_font = ThemeDB.fallback_font
+	return _font
+
+
 ## Рамка: заливка, золотая кромка, скругление.
 static func box(fill: Color, border := GOLD_DARK, radius := 8, margin := 8, border_width := 3) -> StyleBoxFlat:
 	var sb := StyleBoxFlat.new()
@@ -40,6 +52,7 @@ static func panel(alpha := 0.96) -> StyleBoxFlat:
 
 static func make_theme() -> Theme:
 	var th := Theme.new()
+	th.default_font = font()
 	th.default_font_size = 16
 	th.set_stylebox("normal", "Button", box(WOOD_LIGHT, GOLD_DARK, 8, 7))
 	th.set_stylebox("hover", "Button", box(Color("84603c"), GOLD, 8, 7))
