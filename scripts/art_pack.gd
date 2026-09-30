@@ -57,7 +57,7 @@ static func texture(rel: String) -> Texture2D:
 static func meta(dir: String) -> Dictionary:
 	if _meta.has(dir):
 		return _meta[dir]
-	var result := {"fps": 10.0, "scale": 0.5, "offset": Vector2.ZERO}
+	var result := {"fps": 10.0, "scale": 0.5, "offset": Vector2.ZERO, "tint": Color.WHITE}
 	var path := root + dir + "/meta.json"
 	if FileAccess.file_exists(path):
 		var parsed: Variant = JSON.parse_string(FileAccess.get_file_as_string(path))
@@ -66,6 +66,8 @@ static func meta(dir: String) -> Dictionary:
 				result["fps"] = parsed["fps"]
 			if parsed.has("scale"):
 				result["scale"] = float(parsed["scale"])
+			if parsed.has("tint") and parsed["tint"] is Array and parsed["tint"].size() >= 3:
+				result["tint"] = Color(float(parsed["tint"][0]), float(parsed["tint"][1]), float(parsed["tint"][2]))
 			if parsed.has("offset") and parsed["offset"] is Array and parsed["offset"].size() >= 2:
 				result["offset"] = Vector2(float(parsed["offset"][0]), float(parsed["offset"][1]))
 	_meta[dir] = result
@@ -145,6 +147,7 @@ static func make_sprite(dir: String, feet: Vector2) -> AnimatedSprite2D:
 	sprite.offset = Vector2(0, -height * 0.5)           # низ картинки в точке (0, 0)
 	sprite.position = feet + (m["offset"] as Vector2)
 	sprite.set_meta("height", height * scale_value)     # высота в единицах игры, для полосок здоровья
+	sprite.set_meta("tint", m["tint"])                  # общий оттенок (разные враги из одной картинки)
 	sprite.animation = first_anim
 	sprite.play(first_anim)
 	return sprite

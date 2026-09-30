@@ -49,6 +49,26 @@ static func draw(ci: CanvasItem, type: String, r: float, f: float, ph: float, wh
 			ci.draw_circle(o + Vector2(cos(a) * r * 0.9, -r * 2.0 + sin(a) * r * 0.3), 2.0, Color(1.0, 0.85, 0.3, 0.9))
 
 
+## Эффекты вокруг настоящего спрайта (assets/art): круг знаменосца, ярость, искры ускорения, «плюсики» лечения.
+## top: высота над землёй, где заканчивается голова спрайта (в локальных координатах врага, отрицательная).
+static func sprite_effects(ci: CanvasItem, r: float, feet: Vector2, top: float, ph: float, enraged: bool, buffed: bool, healing: bool, aura: float) -> void:
+	if aura > 0.0:
+		Art.ellipse_outline(ci, feet, aura, aura * 0.42, Color(1.0, 0.85, 0.3, 0.28), 2.0)
+	if enraged:
+		ci.draw_circle(feet + Vector2(0, (top - feet.y) * 0.5), absf(top - feet.y) * 0.8, Color(1.0, 0.2, 0.1, 0.22 + 0.12 * sin(ph * 14.0)))
+	if buffed:
+		for i in 3:
+			var a := ph * 4.0 + i * 2.1
+			ci.draw_circle(Vector2(cos(a) * r * 0.9, top + sin(a) * r * 0.3), 2.0, Color(1.0, 0.85, 0.3, 0.9))
+	if healing:
+		for i in 3:
+			var t := fposmod(ph * 0.9 + i / 3.0, 1.0)
+			var p := Vector2((i - 1) * 0.6 * r, feet.y + (top - feet.y) * (0.3 + t * 0.6))
+			var c := Color(0.4, 1.0, 0.5, 1.0 - t)
+			ci.draw_line(p + Vector2(-3, 0), p + Vector2(3, 0), c, 2.0)
+			ci.draw_line(p + Vector2(0, -3), p + Vector2(0, 3), c, 2.0)
+
+
 # ---------- общее тело орка ----------
 
 ## Тело орка: ноги, торс, руки, голова. Возвращает важные точки: hand (рука с оружием), back_hand, head.

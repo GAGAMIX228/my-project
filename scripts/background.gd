@@ -5,6 +5,11 @@ extends Node2D
 var _rng := RandomNumberGenerator.new()
 
 
+func _ready() -> void:
+	if ArtPack.pixel_art():
+		texture_filter = CanvasItem.TEXTURE_FILTER_NEAREST   # пиксельный фон без сглаживания
+
+
 func _draw() -> void:
 	# готовый фон уровня (assets/art/levels/<id>/background.png), если он есть
 	var picture := ArtPack.texture("levels/%s/background.png" % Game.level_id)

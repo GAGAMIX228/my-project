@@ -86,12 +86,13 @@ func _update_sprite() -> void:
 	else:
 		ArtPack.play(_sprite, "walk")
 		_sprite.speed_scale = 1.3 if buffed else 1.0
+	var tint: Color = _sprite.get_meta("tint", Color.WHITE)
 	if flash > 0.0:
 		_sprite.modulate = Color(2.2, 2.2, 2.2)
 	elif ice > 0.0:
-		_sprite.modulate = Color(0.7, 0.9, 1.25)
+		_sprite.modulate = Color(0.7, 0.9, 1.25) * tint
 	else:
-		_sprite.modulate = Color.WHITE
+		_sprite.modulate = tint
 
 
 ## Куда целиться: у летающих врагов центр выше земли.
@@ -302,6 +303,7 @@ func _draw() -> void:
 	if _sprite != null:
 		Art.blob_shadow(self, Vector2(0, r * 0.85), r * 1.15)
 		top = _sprite.position.y - float(_sprite.get_meta("height")) - 2.0
+		EnemyArt.sprite_effects(self, r, Vector2(0, r * 0.85 + lift), top, phase, enraged, buffed, healing, aura)
 	else:
 		EnemyArt.draw(self, type, r, face, phase, flash > 0.0, enraged, buffed, healing, aura)
 	# головы находятся примерно на 1.55·r над центром врага

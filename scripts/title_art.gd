@@ -16,7 +16,7 @@ func _ready() -> void:
 	_add_tower("mage", Vector2(282, 384), 2.7)
 	_add_hero("tarn", Vector2(205, 482), 3.0)
 	_add_hero("edrik", Vector2(345, 478), 4.2)
-	_add_hero("ashgar", Vector2(570, 272), 3.0)
+	_add_hero("ashgar", Vector2(575, 318), 3.0)
 
 
 func _add_tower(kind: String, pos: Vector2, s: float) -> void:
@@ -30,6 +30,14 @@ func _add_tower(kind: String, pos: Vector2, s: float) -> void:
 
 
 func _add_hero(id: String, pos: Vector2, s: float) -> void:
+	# настоящая анимация героя (assets/art/heroes/<id>), если она есть
+	var animated := ArtPack.make_sprite("heroes/%s" % id, Vector2.ZERO)
+	if animated != null and not id in ["ashgar", "morven", "zefira"]:
+		animated.position = pos
+		animated.scale *= 3.0 * s / 4.2
+		ArtPack.play(animated, "idle")
+		add_child(animated)
+		return
 	var hero := HeroSprite.new()
 	hero.hid = id
 	hero.position = pos
@@ -251,8 +259,8 @@ func _arrows() -> void:
 
 
 func _fire() -> void:
-	# дыхание дракона: дракон висит в (570, 272), пасть примерно в (636, 203)
-	var mouth := Vector2(638, 203)
+	# дыхание дракона: дракон висит в (575, 318), пасть примерно в (641, 249)
+	var mouth := Vector2(643, 250)
 	var dir := (Vector2(820, 372) - mouth).normalized()
 	var side := Vector2(-dir.y, dir.x)
 	for i in 22:

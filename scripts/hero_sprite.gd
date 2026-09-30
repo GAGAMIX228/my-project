@@ -20,6 +20,11 @@ static func attach(parent: Control, hero_id: String, center: Vector2, diameter: 
 	return sprite
 
 
+func _ready() -> void:
+	if ArtPack.pixel_art():
+		texture_filter = CanvasItem.TEXTURE_FILTER_NEAREST
+
+
 func _process(delta: float) -> void:
 	_time += delta
 	queue_redraw()
