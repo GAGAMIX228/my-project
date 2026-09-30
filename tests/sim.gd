@@ -46,6 +46,9 @@ func _ready() -> void:
 	var level := OS.get_environment("DIFFICULTY")   # novice, fighter или veteran
 	if level != "":
 		Game.difficulty = level
+	var counts := OS.get_environment("COUNT_SCALE")
+	if counts != "":
+		Game.count_test_scale = float(counts)
 	var scale := OS.get_environment("HP_SCALE")
 	if scale != "":
 		Defs.hp_scale = float(scale)
@@ -61,8 +64,8 @@ func _process(delta: float) -> void:
 		var stars := 0
 		if g.over and g.lives > 0:
 			stars = 3 if g.lives >= 18 else (2 if g.lives >= 10 else 1)
-		print("РЕЗУЛЬТАТ hp=%.2f сложность=%s mode=%s героев=%s заклинаний=%s: %s, волна %d, жизни %d, убито %d, звёзды %d, время %d с" % [
-			Defs.hp_scale, Game.difficulty, mode, ",".join(Game.loadout_heroes), ",".join(Game.loadout_spells),
+		print("РЕЗУЛЬТАТ hp=%.2f врагов×%.2f сложность=%s mode=%s героев=%s заклинаний=%s: %s, волна %d, жизни %d, убито %d, звёзды %d, время %d с" % [
+			Defs.hp_scale, Game.count_test_scale, Game.difficulty, mode, ",".join(Game.loadout_heroes), ",".join(Game.loadout_spells),
 			"победа" if (g.over and g.lives > 0) else ("поражение" if g.over else "таймаут"),
 			g.wave, g.lives, g.kills, stars, int(elapsed)])
 		get_tree().quit(0)

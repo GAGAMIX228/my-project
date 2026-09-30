@@ -52,3 +52,43 @@ static func label(ci: CanvasItem, pos: Vector2, text: String, size := 11) -> voi
 	var font := Ui.font()
 	ci.draw_string_outline(font, pos + Vector2(-60, 0), text, HORIZONTAL_ALIGNMENT_CENTER, 120, size, 4, Color(0, 0, 0, 0.7))
 	ci.draw_string(font, pos + Vector2(-60, 0), text, HORIZONTAL_ALIGNMENT_CENTER, 120, size, Color.WHITE)
+
+
+const OUTLINE := Color("1d1409")
+
+
+## Круг с тёмной кромкой: так фигуры выглядят «мультяшно» и не сливаются с фоном.
+static func outlined_circle(ci: CanvasItem, center: Vector2, radius: float, fill: Color, width := 1.6, outline := OUTLINE) -> void:
+	ci.draw_circle(center, radius + width, outline)
+	ci.draw_circle(center, radius, fill)
+
+
+static func outlined_ellipse(ci: CanvasItem, center: Vector2, rx: float, ry: float, fill: Color, width := 1.6, outline := OUTLINE) -> void:
+	ellipse(ci, center, rx + width, ry + width, outline)
+	ellipse(ci, center, rx, ry, fill)
+
+
+## Многоугольник с тёмной кромкой.
+static func outlined_poly(ci: CanvasItem, points: Array, fill: Color, width := 1.6, outline := OUTLINE) -> void:
+	var pts := PackedVector2Array(points)
+	ci.draw_colored_polygon(pts, fill)
+	var closed := PackedVector2Array(pts)
+	closed.append(pts[0])
+	ci.draw_polyline(closed, outline, width, true)
+
+
+## Толстая линия с тёмной кромкой (оружие, древко, конечности).
+static func outlined_line(ci: CanvasItem, a: Vector2, b: Vector2, color: Color, width: float, outline_width := 1.4) -> void:
+	ci.draw_line(a, b, OUTLINE, width + outline_width * 2.0)
+	ci.draw_line(a, b, color, width)
+
+
+## Нога, которая шагает: бедро в hip, стопа качается вперёд и назад по фазе phase.
+static func leg(ci: CanvasItem, hip: Vector2, phase: float, length: float, color: Color, width: float) -> void:
+	var foot := hip + Vector2(sin(phase) * length * 0.55, length - maxf(0.0, -cos(phase)) * length * 0.25)
+	outlined_line(ci, hip, foot, color, width, 1.2)
+	outlined_circle(ci, foot + Vector2(width * 0.2, 0), width * 0.6, color.darkened(0.25), 1.0)
+
+
+static func blob_shadow(ci: CanvasItem, center: Vector2, rx: float) -> void:
+	ellipse(ci, center, rx, rx * 0.36, Color(0, 0, 0, 0.3))

@@ -32,6 +32,8 @@ var difficulty := "fighter"
 var slot := 0          # номер ячейки от 1 до 3; 0 значит «без ячейки» (автотесты), тогда ничего не сохраняется
 ## Сохранять ли прогресс на диск. Автотесты выключают, чтобы не портить сохранения игрока.
 var persist := true
+## Только для автотестов (COUNT_SCALE в tests/sim.gd): дополнительный множитель числа врагов.
+var count_test_scale := 1.0
 
 
 func slot_path(n: int) -> String:
@@ -95,9 +97,14 @@ func total_stars() -> int:
 	return sum
 
 
-## Во сколько раз здоровее враги на выбранной сложности.
-func hp_mult() -> float:
-	return float(Defs.DIFFICULTIES[difficulty]["hp"])
+## Во сколько раз больше (или меньше) врагов в волнах на выбранной сложности. Здоровье врагов не меняется.
+func count_mult() -> float:
+	return float(Defs.DIFFICULTIES[difficulty]["count"])
+
+
+## Сколько врагов в группе волны на выбранной сложности. Одиночные (вождь) остаются одиночными.
+func group_count(base: int) -> int:
+	return base if base <= 1 else maxi(1, roundi(base * count_mult() * count_test_scale))
 
 
 ## Открыт ли уровень на карте: первый всегда, остальные после хотя бы одной звезды на предыдущем.

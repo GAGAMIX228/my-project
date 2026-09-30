@@ -1,6 +1,6 @@
 extends Node
 ## Скриншоты для проверки глазами. Нужен виртуальный экран (см. CLAUDE.md, раздел 14).
-## Запуск: ... res://tests/shots.tscn -- title (заставка и окна), battle, campaign (карта и вкладки), menu (круговое меню башен), gallery (все герои)
+## Запуск: ... res://tests/shots.tscn -- enemies (все 12 врагов), title (заставка и окна), battle, campaign (карта и вкладки), menu (круговое меню башен), gallery (все герои)
 ## Куда сохранять: переменная окружения SHOTS_DIR, по умолчанию папка user://shots.
 
 var main: Node
@@ -36,6 +36,35 @@ func _ready() -> void:
 	add_child(main)
 
 
+## Все типы врагов в двух рядах, для проверки рисунка.
+class EnemyGallery extends Node2D:
+	func _ready() -> void:
+		var types: Array = Defs.ENEMIES.keys()
+		for i in types.size():
+			var sprite := EnemySprite.new()
+			sprite.type = types[i]
+			sprite.position = Vector2(85 + (i % 6) * 158, 150 + (i / 6) * 220)
+			add_child(sprite)
+
+	func _draw() -> void:
+		draw_rect(Rect2(0, 0, 960, 540), Color("7dba58"))
+
+
+class EnemySprite extends Node2D:
+	var type := "grunt"
+	var _t := 0.0
+
+	func _process(delta: float) -> void:
+		_t += delta
+		queue_redraw()
+
+	func _draw() -> void:
+		var d: Dictionary = Defs.ENEMIES[type]
+		var r := float(d["radius"]) * 1.7
+		EnemyArt.draw(self, type, r, 1.0, _t, false, false, false, type == "troll", 0.0)
+		draw_string(Ui.font(), Vector2(-70, r * 0.85 + 34), d["name"], HORIZONTAL_ALIGNMENT_CENTER, 140, 14, Color.WHITE)
+
+
 func _shot(shot_name: String) -> void:
 	var img := get_viewport().get_texture().get_image()
 	img.save_png(dir + "/" + shot_name + ".png")
@@ -44,6 +73,18 @@ func _shot(shot_name: String) -> void:
 
 func _process(delta: float) -> void:
 	t += delta
+	if mode == "enemies":
+		if step == 0 and t > 0.2:
+			var gal := EnemyGallery.new()
+			main.add_child(gal)
+			main.get_node("Hud").visible = false
+			main.get_node("Background").visible = false
+			step = 1
+			t = 0.0
+		elif step == 1 and t > 0.6:
+			_shot("enemies")
+			get_tree().quit()
+		return
 	if mode == "gallery":
 		if step == 0 and t > 0.3:
 			for i in Defs.HERO_ORDER.size():

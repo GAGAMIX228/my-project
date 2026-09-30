@@ -4,12 +4,13 @@ extends Node2D
 ## Стрела и шар летят за целью. Снаряд мортиры и метеорит летят в точку и взрываются.
 
 var kind := "arrow"  # "arrow", "orb", "shell" или "meteor"
-var target: Enemy
+var target: Node2D   # Enemy (стрелы башен и героев) или Soldier/Hero (стрелы орков-лучников)
 var dmg := 0.0
 var dtype := "phys"  # "phys" физический, "magic" магический, "pure" чистый
 var speed := 500.0
 var color := Color("c9a6ff")
 var splash := 0.0
+var enemy_shot := false  # выстрел врага по бойцу: рисуется тёмной стрелой
 var big := false     # мощная стрела (способность Тарна): рисуется крупнее
 var boom_color := Color("ffcf7a")
 
@@ -19,10 +20,27 @@ var _t := 0.0
 var _dur := 0.9
 
 
-func launch_homing(from: Vector2, enemy: Enemy) -> void:
+func launch_homing(from: Vector2, victim: Node2D) -> void:
 	position = from
-	target = enemy
-	_end = enemy.aim_point()
+	target = victim
+	_end = _aim()
+
+
+## Живая ли цель.
+func _target_alive() -> bool:
+	if not is_instance_valid(target):
+		return false
+	if target is Enemy:
+		return not (target as Enemy).dead
+	return not (target as Soldier).dead
+
+
+## Куда целиться: у врагов aim_point(), у бойцов чуть выше земли, у летающих героев ещё выше.
+func _aim() -> Vector2:
+	if target is Enemy:
+		return (target as Enemy).aim_point()
+	var lift := -22.0 if (target is Hero and (target as Hero).flying) else -8.0
+	return target.global_position + Vector2(0, lift)
 
 
 func launch_shell(from: Vector2, to: Vector2, duration: float) -> void:
@@ -42,14 +60,17 @@ func _process(delta: float) -> void:
 		if f >= 1.0:
 			_explode()
 	else:
-		if is_instance_valid(target) and not target.dead:
-			_end = target.aim_point()
+		if _target_alive():
+			_end = _aim()
 		var to_end := _end - position
 		var dist := to_end.length()
 		var step := speed * delta
 		if dist <= step + 2.0:
-			if is_instance_valid(target) and not target.dead:
-				target.take_damage(dmg, dtype)
+			if _target_alive():
+				if target is Enemy:
+					(target as Enemy).take_damage(dmg, dtype)
+				else:
+					(target as Soldier).take_damage(dmg)
 			var spark := Color("ffe27a") if big else (color if kind == "orb" else Color.WHITE)
 			Fx.ring(_end, 20.0 if big else 9.0, spark, 0.18)
 			queue_free()
@@ -77,6 +98,9 @@ func _draw() -> void:
 		if big:
 			draw_line(Vector2(-16, 0), Vector2(7, 0), Color("ffd24a"), 3.4)
 			Art.tri(self, Vector2(7, -3.5), Vector2(13, 0), Vector2(7, 3.5), Color("fff2b0"))
+		elif enemy_shot:
+			draw_line(Vector2(-9, 0), Vector2(7, 0), Color("3a2a1a"), 2.0)
+			Art.tri(self, Vector2(7, -3), Vector2(13, 0), Vector2(7, 3), Color("8f3a2a"))
 		else:
 			draw_line(Vector2(-9, 0), Vector2(7, 0), Color("4b2f14"), 2.0)
 			Art.tri(self, Vector2(7, -3), Vector2(13, 0), Vector2(7, 3), Color("cfd3d8"))

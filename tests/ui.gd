@@ -63,13 +63,13 @@ func _test_saves() -> void:
 	check(not Game.level_unlocked(1), "без звёзд второй уровень закрыт")
 	Game.difficulty = "novice"
 	Game.reset()
-	check(Game.gold == 260 and is_equal_approx(Game.hp_mult(), 0.8), "Новичок: больше золота, враги слабее")
+	check(Game.gold == 260 and is_equal_approx(Game.count_mult(), 0.8), "Новичок: больше золота, врагов меньше")
 	Game.difficulty = "veteran"
 	Game.reset()
-	check(Game.gold == 200 and is_equal_approx(Game.hp_mult(), 1.25), "Ветеран: меньше золота, враги крепче")
+	check(Game.gold == 200 and is_equal_approx(Game.count_mult(), 1.4), "Ветеран: меньше золота, врагов больше")
 	Game.difficulty = "fighter"
 	Game.reset()
-	check(Game.gold == 220 and is_equal_approx(Game.hp_mult(), 1.0), "Боец: стандартные значения")
+	check(Game.gold == 220 and is_equal_approx(Game.count_mult(), 1.0), "Боец: стандартные значения")
 
 
 ## Заставка: создание игры в пустой ячейке.

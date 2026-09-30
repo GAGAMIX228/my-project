@@ -2,12 +2,6 @@ class_name Enemy
 extends PathFollow2D
 ## Один орк. Он идёт по дороге (Path2D), получает урон и сам себя рисует.
 
-const BODY := {
-	"grunt": Color("5f9440"), "raider": Color("7fae4c"), "shield": Color("4c7d36"),
-	"berserk": Color("6f9a3a"), "shaman": Color("5a8a44"), "warlock": Color("5f9440"),
-	"gryph": Color("5f9440"), "chief": Color("3e6a2c"),
-}
-
 var type := "grunt"
 var hp := 1.0
 var max_hp := 1.0
@@ -26,18 +20,27 @@ var flash := 0.0      # короткая белая вспышка при поп
 var ice := 0.0        # пока больше нуля, враг заморожен (стоит и голубеет)
 var burn := 0.0       # оставшееся время горения
 var burn_dps := 0.0
+var regen := 0.0          # сколько здоровья в секунду возвращает, если его не бьют (тролль)
+var shot_range := 0.0     # дальность выстрела по бойцам и героям (лучник), 0 значит не стреляет
+var shot_dmg := 0.0
+var shot_rate := 1.7
+var aura := 0.0           # радиус, в котором орки рядом идут быстрее (знаменосец)
+var buffed := false       # рядом знаменосец: идёт быстрее
+var healing := false      # сейчас лечится (для рисунка)
 var phase := 0.0
 var face := 1.0
 var _heal_timer := 1.5
+var _since_hit := 99.0
+var _shot_cd := 1.0
+var _buff_timer := 0.0
 var _atk_cd := 0.5
 var _last_x := 0.0
-var _origin := Vector2.ZERO
 
 
 func setup(enemy_type: String) -> void:
 	type = enemy_type
 	var def: Dictionary = Defs.ENEMIES[type]
-	max_hp = float(def["hp"]) * Defs.hp_scale * Game.hp_mult()
+	max_hp = float(def["hp"]) * Defs.hp_scale
 	hp = max_hp
 	speed = float(def["speed"])
 	armor = float(def["armor"])
@@ -46,6 +49,11 @@ func setup(enemy_type: String) -> void:
 	radius = float(def["radius"])
 	leak = int(def["leak"])
 	flying = bool(def["fly"])
+	regen = float(def.get("regen", 0.0))
+	shot_range = float(def.get("range", 0.0))
+	shot_dmg = float(def.get("shot_dmg", 0.0))
+	shot_rate = float(def.get("shot_rate", 1.7))
+	aura = float(def.get("aura", 0.0))
 	phase = randf() * 6.0
 
 
@@ -80,6 +88,7 @@ func take_damage(amount: float, dtype: String, quiet := false) -> void:
 	elif dtype == "magic":
 		d *= 1.0 - mres
 	hp -= d
+	_since_hit = 0.0
 	if not quiet:
 		flash = 0.09
 	if hp <= 0.0:
@@ -139,8 +148,13 @@ func _process(delta: float) -> void:
 		take_damage(burn_dps * delta, "magic", true)
 		if dead:
 			return
+	_since_hit += delta
 	if type == "shaman":
 		_heal_allies(delta)
+	_regenerate(delta)
+	_update_buff(delta)
+	if shot_range > 0.0 and stun <= 0.0:
+		_shoot_defenders(delta)
 	if stun > 0.0:
 		stun -= delta
 	elif _fight(delta):
@@ -148,7 +162,7 @@ func _process(delta: float) -> void:
 		return
 	else:
 		var enraged := type == "berserk" and hp < max_hp * 0.5
-		progress += speed * (1.7 if enraged else 1.0) * delta
+		progress += speed * (1.7 if enraged else 1.0) * (1.3 if buffed else 1.0) * delta
 		if progress_ratio >= 1.0:
 			_escape()
 			return
@@ -177,6 +191,57 @@ func _fight(delta: float) -> bool:
 	return true
 
 
+## Тролль: если его 2,5 секунды не били, здоровье возвращается.
+func _regenerate(delta: float) -> void:
+	healing = regen > 0.0 and _since_hit > 2.5 and hp < max_hp
+	if healing:
+		hp = minf(max_hp, hp + regen * delta)
+
+
+## Раз в 0,3 секунды проверяем, есть ли рядом знаменосец.
+func _update_buff(delta: float) -> void:
+	_buff_timer -= delta
+	if _buff_timer > 0.0:
+		return
+	_buff_timer = 0.3
+	buffed = false
+	for e in Game.enemies():
+		if e != self and e.aura > 0.0 and e.global_position.distance_to(global_position) <= e.aura:
+			buffed = true
+			return
+
+
+## Лучник: стреляет по ближайшему бойцу или герою в радиусе и продолжает идти.
+func _shoot_defenders(delta: float) -> void:
+	_shot_cd -= delta
+	if _shot_cd > 0.0:
+		return
+	var best: Soldier = null
+	var best_d := shot_range
+	for group in ["soldiers", "heroes"]:
+		for node in get_tree().get_nodes_in_group(group):
+			var unit := node as Soldier
+			if unit == null or unit.dead:
+				continue
+			var d := unit.position.distance_to(global_position)
+			if d < best_d:
+				best = unit
+				best_d = d
+	if best == null:
+		_shot_cd = 0.3
+		return
+	_shot_cd = shot_rate
+	face = 1.0 if best.position.x >= global_position.x else -1.0
+	var p := Projectile.new()
+	p.kind = "arrow"
+	p.dmg = shot_dmg
+	p.dtype = "phys"
+	p.speed = 380.0
+	p.enemy_shot = true
+	Game.proj_root.add_child(p)
+	p.launch_homing(global_position + Vector2(0, -10), best)
+
+
 func _heal_allies(delta: float) -> void:
 	_heal_timer -= delta
 	if _heal_timer > 0.0:
@@ -196,100 +261,20 @@ func _heal_allies(delta: float) -> void:
 
 # ---------- рисование ----------
 
-func _p(x: float, y: float) -> Vector2:
-	return _origin + Vector2(x, y)
-
-
-func _circ(x: float, y: float, r: float, color: Color) -> void:
-	draw_circle(_p(x, y), r, color)
-
-
-func _tri(x1: float, y1: float, x2: float, y2: float, x3: float, y3: float, color: Color) -> void:
-	Art.tri(self, _p(x1, y1), _p(x2, y2), _p(x3, y3), color)
-
-
 func _draw() -> void:
 	var r := radius
-	var f := face
-	var bob := sin(phase * 6.0) * 1.6
 	var lift := -24.0 if flying else 0.0
-	_origin = Vector2(0, bob + lift)
-	Art.ellipse(self, Vector2(0, r * 0.85), r * 1.05, r * 0.42, Color(0, 0, 0, 0.28))
-	var body: Color = Color.WHITE if flash > 0.0 else BODY.get(type, Color("5f9440"))
-	if type == "gryph":
-		_draw_gryph(r, f, body)
-	else:
-		_draw_orc(r, f, body)
+	var enraged := type == "berserk" and hp < max_hp * 0.5
+	EnemyArt.draw(self, type, r, face, phase, flash > 0.0, enraged, buffed, healing, aura)
+	# головы находятся примерно на 1.55·r над центром врага
 	if ice > 0.0:
-		draw_circle(Vector2(0, lift - r * 0.25), r * 1.15, Color(0.66, 0.89, 1.0, 0.5))
+		draw_circle(Vector2(0, lift - r * 0.4), r * 1.35, Color(0.66, 0.89, 1.0, 0.5))
 	if stun > 0.0 and ice <= 0.0:
 		for i in 3:
 			var a := phase * 5.0 + i * 2.1
-			draw_circle(Vector2(cos(a) * 9.0, lift - r * 1.5 + sin(a) * 3.0), 2.4, Color("ffe27a"))
+			draw_circle(Vector2(cos(a) * 9.0, lift - r * 1.8 + sin(a) * 3.0), 2.4, Color("ffe27a"))
 	if burn > 0.0:
 		Art.tri(self, Vector2(-4, lift - r * 0.3), Vector2(0, lift - r * 1.5 - sin(phase * 14.0) * 2.0), Vector2(4, lift - r * 0.3), Color(1.0, 0.54, 0.16, 0.8))
 	if hp < max_hp:
 		var bar := Color("e0523f") if type == "chief" else Color("d94a3a")
-		Art.hp_bar(self, 0.0, lift - r - 12.0 + bob, maxf(20.0, r * 2.0), hp / max_hp, bar)
-
-
-func _draw_gryph(r: float, f: float, body: Color) -> void:
-	var wing := sin(phase * 13.0)
-	var wing_col := Color("a37f4a")
-	_tri(-r * 0.3, 2, -r * 2.3, -10 - wing * 9, -r * 0.4, 9, wing_col)
-	_tri(r * 0.3, 2, r * 2.3, -10 - wing * 9, r * 0.4, 9, wing_col)
-	Art.ellipse(self, _p(0, 6), r * 1.3, r * 0.7, Color.WHITE if flash > 0.0 else Color("8a6a3c"))
-	_circ(f * r * 1.15, 4, r * 0.48, Color("8a6a3c"))
-	_tri(f * r * 1.5, 3, f * r * 2.1, 5, f * r * 1.5, 8, Color("e8c04a"))
-	_circ(0, -r * 0.5, r * 0.75, body)
-	_circ(-r * 0.28, -r * 0.6, r * 0.2, Color.WHITE)
-	_circ(r * 0.28, -r * 0.6, r * 0.2, Color.WHITE)
-	_circ(-r * 0.28 + f, -r * 0.6, r * 0.09, Color("b01818"))
-	_circ(r * 0.28 + f, -r * 0.6, r * 0.09, Color("b01818"))
-
-
-func _draw_orc(r: float, f: float, body: Color) -> void:
-	var hooded := type == "warlock" or type == "shaman"
-	var er := r * 0.72 if hooded else r
-	var white := flash > 0.0
-	if type == "shield" or type == "chief":
-		Art.rect(self, _origin.x + f * (r * 0.55) - 4.0, _origin.y - r * 0.9, 9.0, r * 1.5, Color("8b8f99"))
-	if type == "warlock":
-		_tri(-r * 1.1, r * 0.9, 0, -r * 1.2, r * 1.1, r * 0.9, Color.WHITE if white else Color("4f3f86"))
-	if type == "shaman":
-		_tri(-r * 1.05, r * 0.9, 0, -r * 1.1, r * 1.05, r * 0.9, Color.WHITE if white else Color("6b4a2e"))
-	_circ(0, -r * 0.25, er, body)
-	if type == "raider":
-		Art.rect(self, _origin.x - r, _origin.y - r * 0.85, r * 2.0, 3.5, Color("b8342a"))
-	if type == "berserk":
-		var paint := Color("c2483a")
-		draw_line(_p(-r * 0.8, -r * 0.8), _p(-r * 0.3, -r * 0.1), paint, 2.2)
-		draw_line(_p(r * 0.8, -r * 0.8), _p(r * 0.3, -r * 0.1), paint, 2.2)
-		_tri(-r * 0.35, -r * 1.15, 0, -r * 1.9, r * 0.35, -r * 1.15, paint)
-	if type == "chief":
-		draw_arc(_p(0, -r * 0.5), r * 0.95, PI, TAU, 16, Color("7a7d86"), r * 0.5)
-		_tri(-r, -r * 0.6, -r - 6, -r * 1.6, -r * 0.55, -r * 1.05, Color("e9e2cc"))
-		_tri(r, -r * 0.6, r + 6, -r * 1.6, r * 0.55, -r * 1.05, Color("e9e2cc"))
-	# глаза
-	var pupil := Color("c48bff") if type == "warlock" else Color("b01818")
-	_circ(-er * 0.35, -er * 0.3, er * 0.22, Color.WHITE)
-	_circ(er * 0.35, -er * 0.3, er * 0.22, Color.WHITE)
-	_circ(-er * 0.35 + f, -er * 0.3, er * 0.1, pupil)
-	_circ(er * 0.35 + f, -er * 0.3, er * 0.1, pupil)
-	if not hooded:
-		_tri(-r * 0.3, r * 0.1, -r * 0.12, r * 0.1, -r * 0.22, -r * 0.18, Color("f3efe0"))
-		_tri(r * 0.3, r * 0.1, r * 0.12, r * 0.1, r * 0.22, -r * 0.18, Color("f3efe0"))
-	# оружие
-	if type == "shaman":
-		draw_line(_p(f * r * 1.1, r * 0.9), _p(f * r * 1.1, -r * 1.3), Color("6b4a2e"), 2.4)
-		_circ(f * r * 1.1, -r * 1.5, 4.0, Color("6ff0b0"))
-	elif type == "warlock":
-		var a := phase * 3.0
-		_circ(cos(a) * r * 1.3, -r * 0.4 + sin(a) * 4.0, 3.4, Color("c48bff"))
-	else:
-		var steel := Color("9aa0a8")
-		draw_line(_p(-f * r * 0.9, r * 0.2), _p(-f * r * 1.5, -r * 0.9), Color("4a3220"), 2.6)
-		_tri(-f * r * 1.5, -r * 0.9, -f * r * 1.9, -r * 0.7, -f * r * 1.4, -r * 1.3, steel)
-		if type == "berserk":
-			draw_line(_p(f * r * 0.9, r * 0.2), _p(f * r * 1.5, -r * 0.9), Color("4a3220"), 2.6)
-			_tri(f * r * 1.5, -r * 0.9, f * r * 1.9, -r * 0.7, f * r * 1.4, -r * 1.3, steel)
+		Art.hp_bar(self, 0.0, lift - r * 1.75 - 6.0, maxf(20.0, r * 2.0), hp / max_hp, bar)

@@ -27,6 +27,8 @@ var radius := 9.0
 var _cd := 0.0
 var _swing := 0.0
 var _hurt := 0.0
+var _phase := 0.0       # фаза шага для рисунка
+var _last_pos := Vector2.ZERO
 
 
 func _ready() -> void:
@@ -65,6 +67,9 @@ func _process(delta: float) -> void:
 	if _swing > 0.0:
 		_swing -= delta
 	_tick(delta)
+	if position.distance_to(_last_pos) > 0.05:
+		_phase += delta * 11.0
+	_last_pos = position
 	if dead:
 		respawn -= delta
 		if respawn <= 0.0:
@@ -147,14 +152,29 @@ func _find_target() -> void:
 
 func _draw() -> void:
 	var r := radius
-	Art.ellipse(self, Vector2(0, r * 0.8), r, r * 0.4, Color(0, 0, 0, 0.25))
+	var f := face
+	var step := _phase
+	Art.blob_shadow(self, Vector2(0, r * 0.85), r * 1.25)
+	# ноги шагают, пока боец идёт
+	Art.leg(self, Vector2(-r * 0.3, r * 0.1), step + PI, r * 0.7, Color("4a4f5c"), r * 0.42)
+	Art.leg(self, Vector2(r * 0.3, r * 0.1), step, r * 0.7, Color("4a4f5c"), r * 0.42)
 	var body := Color.WHITE if _hurt > 0.0 else color
-	draw_circle(Vector2(0, -2), r, body)
-	draw_arc(Vector2(0, -2), r, 0.0, TAU, 20, Color("22386b"), 1.3, true)
-	draw_arc(Vector2(0, -4), r * 0.82, PI, TAU, 14, Color("b7bcc8"), r * 0.5)
-	draw_rect(Rect2(-2, -4, 4, 5), Color("2a2a33"))
-	draw_rect(Rect2(-face * (r + 1) - 3, -6, 6, 11), Color("e2b53c"))
+	# щит за спиной
+	Art.outlined_poly(self, [Vector2(-f * (r + 1) - 4, -r * 0.9), Vector2(-f * (r + 1) + 4, -r * 0.9), Vector2(-f * (r + 1) + 4, r * 0.2), Vector2(-f * (r + 1), r * 0.6), Vector2(-f * (r + 1) - 4, r * 0.2)], Color("e2b53c"), 1.3)
+	Art.outlined_circle(self, Vector2(0, -r * 0.1), r, body, 1.6)
+	_draw_helmet(r)
 	var swing := 1.0 if _swing > 0.0 else 0.0
-	draw_line(Vector2(face * (r - 2), 2), Vector2(face * (r + 11 + swing * 4), -8 + swing * 10), Color("e9edf2"), 2.4)
+	var hand := Vector2(f * (r - 2), 2)
+	var tip := Vector2(f * (r + 12 + swing * 5), -9 + swing * 11)
+	Art.outlined_line(self, hand, tip, Color("e9edf2"), 2.4, 1.2)
+	Art.outlined_circle(self, hand, 2.4, Color("d8dbe3"), 1.0)
 	if hp < max_hp:
-		Art.hp_bar(self, 0.0, -r - 8.0, 20.0, hp / max_hp, Color("59c46a"))
+		Art.hp_bar(self, 0.0, -r - 12.0, 20.0, hp / max_hp, Color("59c46a"))
+
+
+## Шлем с плюмажем и прорезью для глаз.
+func _draw_helmet(r: float) -> void:
+	Art.half_disc(self, Vector2(0, -r * 0.3), r * 0.92, Color("c4c9d4"))
+	draw_arc(Vector2(0, -r * 0.3), r * 0.92, PI, TAU, 14, Art.OUTLINE, 1.5, true)
+	draw_rect(Rect2(-r * 0.5, -r * 0.45, r, 2.4), Color("2a2a33"))
+	Art.outlined_poly(self, [Vector2(-2.5, -r * 1.15), Vector2(0, -r * 1.75), Vector2(3.5, -r * 1.1)], Color("d8493a"), 1.0)

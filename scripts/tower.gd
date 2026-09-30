@@ -164,7 +164,7 @@ func _draw() -> void:
 		else:
 			draw_circle(Vector2.ZERO, range_px, Color(1, 1, 1, 0.14))
 			draw_arc(Vector2.ZERO, range_px, 0.0, TAU, 72, Color(1, 1, 1, 0.7), 2.0, true)
-	Art.ellipse(self, Vector2(0, 5), 23, 10, Color(0, 0, 0, 0.25))
+	Art.blob_shadow(self, Vector2(0, 7), 28.0)
 	match kind:
 		"archer":
 			_draw_archer()
@@ -176,46 +176,143 @@ func _draw() -> void:
 			_draw_mortar()
 	if show_level:
 		for i in level:
-			draw_circle(Vector2(-(level - 1) * 5.0 + i * 10.0, 13), 3.0, Color("f4c542"))
+			draw_circle(Vector2(-(level - 1) * 5.0 + i * 10.0, 14), 3.4, Art.OUTLINE)
+			draw_circle(Vector2(-(level - 1) * 5.0 + i * 10.0, 14), 2.4, Color("f4c542"))
+
+
+const STONE := Color("a39d90")
+const STONE_LIGHT := Color("c4beb0")
+const STONE_DARK := Color("6f6a60")
+const GOLD := Color("e6b84e")
+
+
+## Кладка: камень с тёмными швами (ряды блоков со сдвигом).
+func _stone_wall(rect: Rect2, base: Color, rows: int) -> void:
+	draw_rect(Rect2(rect.position - Vector2(1.5, 1.5), rect.size + Vector2(3, 3)), Art.OUTLINE)
+	draw_rect(rect, base)
+	draw_rect(Rect2(rect.position, Vector2(rect.size.x * 0.3, rect.size.y)), base.lightened(0.14))
+	draw_rect(Rect2(rect.position + Vector2(rect.size.x * 0.75, 0), Vector2(rect.size.x * 0.25, rect.size.y)), base.darkened(0.14))
+	var seam := base.darkened(0.3)
+	for i in range(1, rows):
+		var y := rect.position.y + rect.size.y * i / rows
+		draw_line(Vector2(rect.position.x, y), Vector2(rect.end.x, y), seam, 1.0)
+		var shift := 0.0 if i % 2 == 0 else 5.0
+		var x := rect.position.x + shift + 5.0
+		while x < rect.end.x - 1.0:
+			draw_line(Vector2(x, y), Vector2(x, y - rect.size.y / rows), seam, 1.0)
+			x += 10.0
 
 
 func _draw_archer() -> void:
-	Art.rect(self, -12, -28, 24, 32, Color("8a5a32"))
-	Art.rect(self, -12, -28, 24, 7, Color("a8703e"))
-	Art.tri(self, Vector2(-19, -28), Vector2(0, -48), Vector2(19, -28), Color("b8442e"))
-	Art.tri(self, Vector2(-19, -28), Vector2(0, -48), Vector2(-6, -28), Color("cf5a40"))
+	_stone_wall(Rect2(-14, -14, 28, 18), STONE, 3)
+	# деревянная башенка с навесом
+	draw_rect(Rect2(-14.5, -35.5, 29, 23), Art.OUTLINE)
+	draw_rect(Rect2(-13, -34, 26, 21), Color("93602f"))
+	for i in 4:
+		draw_line(Vector2(-13 + i * 6.5, -34), Vector2(-13 + i * 6.5, -13), Color("6b4220"), 1.2)
+	draw_rect(Rect2(-17, -37, 34, 5), Color("6b4220"))
+	draw_rect(Rect2(-5, -28, 10, 8), Color("2a1a0c"))
+	# крыша из черепицы
+	Art.outlined_poly(self, [Vector2(-21, -36), Vector2(0, -57), Vector2(21, -36)], Color("c2472f"), 1.6)
+	for i in 3:
+		var y := -40.0 - i * 6.0
+		draw_line(Vector2(-16 + i * 5, y), Vector2(16 - i * 5, y), Color("8f2e1c"), 1.2)
+	Art.tri(self, Vector2(-21, -36), Vector2(0, -57), Vector2(-7, -36), Color(1, 1, 1, 0.14))
+	if level >= 2:
+		draw_line(Vector2(17, -58), Vector2(17, -36), Art.OUTLINE, 3.0)
+		var wave := sin(_time * 5.0) * 2.0
+		Art.outlined_poly(self, [Vector2(17, -58), Vector2(28, -55 + wave), Vector2(17, -50)], Color("2f6fc0"), 1.0)
+	if level >= 3:
+		draw_line(Vector2(-21, -36), Vector2(0, -57), GOLD, 2.0)
+		draw_line(Vector2(0, -57), Vector2(21, -36), GOLD, 2.0)
+		Art.outlined_circle(self, Vector2(0, -59), 2.6, GOLD, 1.0)
+	# лучник выглядывает и целится
 	var look := Vector2(cos(_angle), sin(_angle))
-	draw_circle(Vector2(look.x * 4.0, -33), 4.2, Color("f2d2a4"))
-	draw_arc(Vector2(look.x * 9.0, -33 + look.y * 4.0), 5.0, _angle - 1.2, _angle + 1.2, 10, Color("4b2f14"), 1.6)
+	Art.outlined_circle(self, Vector2(look.x * 4.0, -24), 4.2, Color("f2d2a4"), 1.2)
+	Art.half_disc(self, Vector2(look.x * 4.0, -24.5), 4.6, Color("3f7a3a"))
+	draw_arc(Vector2(look.x * 10.0, -24 + look.y * 4.0), 5.0, _angle - 1.2, _angle + 1.2, 10, Art.OUTLINE, 3.2, true)
+	draw_arc(Vector2(look.x * 10.0, -24 + look.y * 4.0), 5.0, _angle - 1.2, _angle + 1.2, 10, Color("8a5a32"), 1.6, true)
 
 
 func _draw_mage() -> void:
-	Art.rect(self, -12, -38, 24, 42, Color("6a54b8"))
-	Art.rect(self, -12, -38, 8, 42, Color("8470d0"))
-	Art.tri(self, Vector2(-17, -38), Vector2(0, -62), Vector2(17, -38), Color("3e2f86"))
-	Art.tri(self, Vector2(-17, -38), Vector2(0, -62), Vector2(-5, -38), Color("5641a8"))
-	var pulse := 5.0 + sin(_time * 4.0) * 1.2
-	draw_circle(Vector2(0, -50), pulse + 6.0, Color(0.85, 0.76, 1.0, 0.28))
-	draw_circle(Vector2(0, -50), pulse, Color("c9a6ff"))
-	Art.rect(self, -4, -16, 8, 14, Color("2b2058"))
+	_stone_wall(Rect2(-12, -46, 24, 50), Color("8a84a8"), 6)
+	# окна светятся
+	var glow := 0.65 + 0.25 * sin(_time * 3.0)
+	for y in [-34.0, -18.0]:
+		draw_rect(Rect2(-3, y, 6, 9), Art.OUTLINE)
+		draw_rect(Rect2(-2, y + 1, 4, 7), Color(0.78, 0.65, 1.0, glow))
+	draw_rect(Rect2(-16.5, -49, 33, 7), Art.OUTLINE)
+	draw_rect(Rect2(-15, -47.5, 30, 5), Color("6f6993"))
+	Art.outlined_poly(self, [Vector2(-14, -48), Vector2(0, -68), Vector2(14, -48)], Color("4a3d9a"), 1.6)
+	Art.tri(self, Vector2(-14, -48), Vector2(0, -68), Vector2(-5, -48), Color(1, 1, 1, 0.16))
+	# парящий кристалл
+	var bob := sin(_time * 2.2) * 2.0
+	var c := Vector2(0, -80 + bob)
+	draw_circle(c, 11.0 + sin(_time * 4.0), Color(0.85, 0.72, 1.0, 0.25))
+	Art.outlined_poly(self, [c + Vector2(0, -8), c + Vector2(6, 0), c + Vector2(0, 8), c + Vector2(-6, 0)], Color("c9a6ff"), 1.4)
+	Art.tri(self, c + Vector2(0, -8), c + Vector2(6, 0), c + Vector2(0, 0), Color("ecdcff"))
+	if level >= 2:
+		for i in 2:
+			var a := _time * 2.0 + i * PI
+			var p := c + Vector2(cos(a) * 14.0, sin(a) * 4.0)
+			draw_circle(p, 2.6, Color("e9dcff"))
+	if level >= 3:
+		draw_rect(Rect2(-12, -24, 24, 3), GOLD)
+		draw_rect(Rect2(-15, -49, 30, 2), GOLD)
+		for i in 3:
+			var a := -_time * 1.6 + i * TAU / 3.0
+			draw_circle(c + Vector2(cos(a) * 19.0, sin(a) * 6.0), 2.0, GOLD)
 
 
 func _draw_mortar() -> void:
-	Art.ellipse(self, Vector2(0, -6), 20, 12, Color("4d4a52"))
-	Art.ellipse(self, Vector2(0, -10), 20, 12, Color("66636c"))
+	# каменная площадка и мешки с песком
+	Art.outlined_ellipse(self, Vector2(0, -4), 24, 12, Color("77737c"))
+	Art.outlined_ellipse(self, Vector2(0, -8), 22, 11, Color("8f8b94"), 0.0)
+	for i in 9:
+		var a := PI * 0.05 + PI * 0.9 * i / 8.0
+		Art.outlined_ellipse(self, Vector2(cos(a) * 21.0, 1.0 + sin(a) * 8.0 - 4.0), 5.0, 3.2, Color("c9ac72"), 1.0)
 	var kick := _recoil * 10.0 if _recoil > 0.0 else 0.0
 	draw_set_transform(Vector2(0, -14), _angle, Vector2.ONE)
-	draw_rect(Rect2(-4 - kick, -6, 30, 12), Color("2f2d33"))
-	draw_rect(Rect2(20 - kick, -8, 8, 16), Color("1f1e23"))
+	var thick := 6.0 + (level - 1) * 1.0
+	draw_rect(Rect2(-4 - kick - 1, -thick - 1, 30 + 2, thick * 2 + 2), Art.OUTLINE)
+	draw_rect(Rect2(-4 - kick, -thick, 30, thick * 2), Color("3a383f"))
+	draw_rect(Rect2(-4 - kick, -thick, 30, thick * 0.6), Color("56535c"))
+	draw_rect(Rect2(20 - kick, -thick - 2, 8, thick * 2 + 4), Color("26252a"))
+	if level >= 3:
+		draw_rect(Rect2(8 - kick, -thick, 4, thick * 2), GOLD)
 	draw_set_transform(Vector2.ZERO, 0.0, Vector2.ONE)
-	draw_circle(Vector2(0, -14), 8.0, Color("54515a"))
+	Art.outlined_circle(self, Vector2(0, -14), 8.0, Color("5a5760"), 1.6)
+	Art.outlined_circle(self, Vector2(-2, -16), 3.0, Color("7a7782"), 0.0)
+	if _recoil > 0.0:
+		var t := _recoil / 0.15
+		var muzzle := Vector2(0, -14) + Vector2(cos(_angle), sin(_angle)) * 30.0
+		draw_circle(muzzle, 7.0 * (1.2 - t * 0.3), Color(1.0, 0.8, 0.4, 0.8 * t))
+		draw_circle(muzzle + Vector2(0, -8.0 * (1.0 - t)), 6.0, Color(0.7, 0.7, 0.7, 0.45 * t))
 
 
 func _draw_barracks() -> void:
-	Art.rect(self, -20, -24, 40, 28, Color("9a9488"))
-	Art.rect(self, -20, -24, 14, 28, Color("b3ad9f"))
+	# боковые башенки с 2 уровня
+	if level >= 2:
+		for x in [-24.0, 24.0]:
+			_stone_wall(Rect2(x - 6, -30, 12, 34), STONE.darkened(0.06), 4)
+			Art.outlined_poly(self, [Vector2(x - 8, -30), Vector2(x, -42), Vector2(x + 8, -30)], Color("2f6fc0"), 1.3)
+	_stone_wall(Rect2(-20, -26, 40, 30), STONE, 4)
+	# зубцы
 	for i in 4:
-		Art.rect(self, -20 + i * 11, -31, 8, 8, Color("7c776c"))
-	Art.rect(self, -6, -12, 12, 16, Color("4a2f1a"))
-	draw_line(Vector2(14, -31), Vector2(14, -50), Color("3d2614"), 2.0)
-	Art.tri(self, Vector2(14, -50), Vector2(30, -45), Vector2(14, -39), Color("2f6fc0"))
+		draw_rect(Rect2(-20.5 + i * 11, -33.5, 9, 9), Art.OUTLINE)
+		draw_rect(Rect2(-19 + i * 11, -32, 6, 7), STONE_DARK)
+		draw_rect(Rect2(-19 + i * 11, -32, 3, 7), STONE)
+	# ворота
+	draw_rect(Rect2(-7.5, -17.5, 15, 22), Art.OUTLINE)
+	draw_rect(Rect2(-6, -16, 12, 20), Color("5a3a1e"))
+	draw_arc(Vector2(0, -16), 6.0, PI, TAU, 10, Art.OUTLINE, 1.6, true)
+	draw_line(Vector2(0, -16), Vector2(0, 4), Color("3a2412"), 1.2)
+	# знамя
+	draw_line(Vector2(0, -33), Vector2(0, -56), Art.OUTLINE, 3.5)
+	var wave := sin(_time * 4.0) * 2.0
+	var cloth := Color("2f6fc0") if level < 3 else Color("3a7ad0")
+	Art.outlined_poly(self, [Vector2(0, -56), Vector2(17, -51 + wave), Vector2(14, -47), Vector2(17, -43 - wave), Vector2(0, -40)], cloth, 1.3)
+	draw_circle(Vector2(6, -48), 2.6, Color("f4c542"))
+	if level >= 3:
+		draw_line(Vector2(-20, -26), Vector2(20, -26), GOLD, 2.0)
+		Art.outlined_circle(self, Vector2(0, -58), 2.6, GOLD, 1.0)

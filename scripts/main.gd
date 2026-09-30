@@ -121,15 +121,20 @@ func start_wave() -> bool:
 	if not can_start_wave():
 		return false
 	var early := _alive_enemies() > 0
-	var t := clock + 0.4
+	var start := clock + 0.4
+	var t := start
 	for group in Defs.WAVES[Game.wave]:
 		var type: String = group[0]
-		var count: int = group[1]
+		var count := Game.group_count(int(group[1]))
 		var gap: float = group[2]
+		# четвёртое число: когда группа начинает идти (так группы идут вперемешку), без него после предыдущей
+		if group.size() > 3:
+			t = start + float(group[3])
 		for i in count:
 			queue.append({"t": t, "type": type})
 			t += gap
-		t += 2.2
+		if group.size() <= 3:
+			t += 2.2
 	queue.sort_custom(func(a, b): return a["t"] < b["t"])
 	Game.wave += 1
 	Game.wave_changed.emit(Game.wave, Defs.WAVES.size())
@@ -163,7 +168,8 @@ func _update_info() -> void:
 		var names: Array[String] = []
 		for group in Defs.WAVES[Game.wave]:
 			var n: String = Defs.ENEMIES[group[0]]["name"]
-			names.append(n if group[1] == 1 else "%s ×%d" % [n, group[1]])
+			var count := Game.group_count(int(group[1]))
+			names.append(n if count == 1 else "%s ×%d" % [n, count])
 		var text := "Впереди волна %d: %s." % [Game.wave + 1, ", ".join(names)]
 		hud.set_info(("Орки выходят из лагеря. " if not queue.is_empty() else "") + text)
 	else:
