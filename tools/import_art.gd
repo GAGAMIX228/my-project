@@ -6,13 +6,18 @@ extends SceneTree
 ##   raw_art/tiny_swords_free   содержимое «Tiny Swords (Free Pack)»
 ##   raw_art/tiny_swords_full   содержимое «Tiny Swords (Update 010)»
 ##   raw_art/tiny_rpg           папка «Characters(100x100 split)» из Tiny RPG Character Asset Pack
+##   raw_art/evolution_dragons  содержимое архива «Evolution Dragons» (GIF и PNG)
+##   raw_art/foozle_spire2      листы из «Spire - Enemy Pack 2» (папка Ground/Spritesheets)
 ## Новый набор: добавь строки в таблицы ниже (кто из наших персонажей какой картинкой рисуется).
 
 const OUT := "res://assets/art/"
 const SWORDS := "res://raw_art/tiny_swords_free/Units/"
 const RPG := "res://raw_art/tiny_rpg/"
+const DRAGONS := "res://raw_art/evolution_dragons/"
+const FOOZLE := "res://raw_art/foozle_spire2/"
+const GifReader := preload("res://tools/gif_reader.gd")
 
-## Кадры: [анимация, файл относительно набора, ширина ячейки, сколько кадров, ряд в листе].
+## Кадры: [анимация, файл относительно набора, ширина ячейки, сколько кадров, ряд в листе, (высота ячейки)].
 ## Tiny RPG Orc: ячейки 100×100, одна строка на анимацию.
 const ORC := [["idle", "Orc/Orc/Orc_Idle.png", 100, 6, 0], ["walk", "Orc/Orc/Orc_Walk.png", 100, 8, 0], ["attack", "Orc/Orc/Orc_Attack01.png", 100, 6, 0], ["die", "Orc/Orc/Orc_Death.png", 100, 4, 0]]
 const SOLDIER := [["idle", "Soldier/Soldier/Soldier_Idle.png", 100, 6, 0], ["walk", "Soldier/Soldier/Soldier_Walk.png", 100, 8, 0], ["attack", "Soldier/Soldier/Soldier_Attack01.png", 100, 6, 0], ["die", "Soldier/Soldier/Soldier_Death.png", 100, 4, 0]]
@@ -54,18 +59,30 @@ func _initialize() -> void:
 	_unit("enemies/banner", RPG, ORC, 1.6, 9, [1.1, 0.9, 0.85])
 	_unit("enemies/troll", RPG, ORC, 2.5, 8, [0.75, 0.85, 1.05])
 	_unit("enemies/chief", RPG, ORC, 3.3, 8, [0.85, 0.95, 0.85])
-	# герои (драконов пока нет, они рисуются кодом)
+	# герои
 	_unit("heroes/edrik", SWORDS, _swords_warrior("Blue"), 0.46)
 	_unit("heroes/grum", SWORDS, _swords_warrior("Yellow"), 0.56)
 	_unit("heroes/kara", RPG, ORC, 1.7, 12, [1.15, 0.8, 0.75])
 	_unit("heroes/tarn", SWORDS, _swords_archer("Blue"), 0.46)
 	_unit("heroes/xol", SWORDS, _swords_monk("Blue"), 0.46)
 	_unit("heroes/ishta", SWORDS, _swords_monk("Purple"), 0.46)
+	# драконы: в GIF дракон растёт из детёныша во взрослого, берём последний кадр (взрослый). Смотрят влево, отражаем.
+	_gif_unit("heroes/ashgar", DRAGONS + "image (19).gif", 0.85)
+	_gif_unit("heroes/morven", DRAGONS + "image (23).gif", 0.8)
+	_gif_unit("heroes/zefira", DRAGONS + "image (22).gif", 0.8)
 	for id in ["edrik", "grum", "kara", "tarn", "xol", "ishta"]:
 		_portrait("heroes/" + id)
+	_portrait("heroes/ashgar", 0.62)
+	_portrait("heroes/morven", 0.72)
+	_portrait("heroes/zefira", 0.74, 0.55, 0.18)
 	# рыцари казармы
 	_unit("soldiers/knight", RPG, SOLDIER, 1.6)
 	_towers()
+	# запас на будущие земли (в бой пока не выходят): жуки, краб и скорпион. Берём боковой ряд каждого блока.
+	_bug("reserve/firebug", "Firebug.png", 128, [6, 8, 11], false)
+	_bug("reserve/leafbug", "Leafbug.png", 64, [6, 8, 7], false)
+	_bug("reserve/magma_crab", "Magma Crab.png", 64, [8, 8, 10], true)
+	_bug("reserve/scorpion", "Scorpion.png", 64, [8, 8, 8], true)
 	print("Импорт закончен: ", ProjectSettings.globalize_path(OUT))
 	quit()
 
@@ -82,7 +99,7 @@ func _write(rel: String, text: String) -> void:
 
 
 ## Один персонаж: нарезаем кадры, обрезаем по общему контуру (ноги внизу по центру), пишем кадры и meta.json.
-func _unit(dir: String, root: String, sheets: Array, scale_value: float, fps := 9, tint := [1, 1, 1]) -> void:
+func _unit(dir: String, root: String, sheets: Array, scale_value: float, fps := 9, tint := [1, 1, 1], flip := false) -> void:
 	var frames := {}
 	var box := Rect2i()
 	var first := true
@@ -93,6 +110,8 @@ func _unit(dir: String, root: String, sheets: Array, scale_value: float, fps := 
 			return
 		var cell_w: int = spec[2]
 		var cell_h := img.get_height() if spec[4] == 0 and img.get_height() <= cell_w * 2 else cell_w
+		if spec.size() > 5:
+			cell_h = spec[5]
 		var list: Array = []
 		for i in int(spec[3]):
 			var cell := img.get_region(Rect2i(i * cell_w, int(spec[4]) * cell_h, cell_w, cell_h))
@@ -102,11 +121,7 @@ func _unit(dir: String, root: String, sheets: Array, scale_value: float, fps := 
 				box = used if first else box.merge(used)
 				first = false
 		frames[spec[0]] = list
-	var old := DirAccess.open(ProjectSettings.globalize_path(OUT + dir))
-	if old != null:
-		for file in old.get_files():
-			if file.ends_with(".png") or file.ends_with(".import"):
-				old.remove(file)
+	_clear(dir)
 	var cx := box.position.x + box.size.x / 2
 	var half := maxi(cx - box.position.x, box.end.x - cx)
 	var crop := Rect2i(cx - half, box.position.y, half * 2, box.size.y)
@@ -116,15 +131,60 @@ func _unit(dir: String, root: String, sheets: Array, scale_value: float, fps := 
 			# для гибели рамка может быть шире: дополняем прозрачным
 			var out := Image.create(crop.size.x, crop.size.y, false, Image.FORMAT_RGBA8)
 			out.blit_rect(cell, crop, Vector2i.ZERO)
+			if flip:
+				out.flip_x()
 			out.save_png(_path("%s/%s_%02d.png" % [dir, anim, i]))
 	_write(dir + "/meta.json", JSON.stringify({"fps": fps, "scale": scale_value, "tint": tint}))
 
 
+## Удаляет старые кадры из папки, чтобы не остались лишние. Файлы .import не трогаем:
+## у перезаписанных кадров сохраняется прежний uid, а лишние Godot уберёт сам при импорте.
+func _clear(dir: String) -> void:
+	var old := DirAccess.open(ProjectSettings.globalize_path(OUT + dir))
+	if old != null:
+		for file in old.get_files():
+			if file.ends_with(".png"):
+				old.remove(file)
+
+
+## Персонаж из одной картинки (последний кадр GIF): обрезаем по контуру, отражаем лицом вправо, пишем idle_00.png.
+## Движение (покачивание в полёте) добавляет игра.
+func _gif_unit(dir: String, gif: String, scale_value: float, flip := true) -> void:
+	var list := GifReader.frames(gif)
+	if list.is_empty():
+		push_error("нет кадров: %s" % gif)
+		return
+	var img: Image = list[-1]
+	img = img.get_region(img.get_used_rect())
+	if flip:
+		img.flip_x()
+	_clear(dir)
+	img.save_png(_path(dir + "/idle_00.png"))
+	_write(dir + "/meta.json", JSON.stringify({"fps": 6, "scale": scale_value}))
+
+
+## Существо из набора Foozle: три блока по три ряда (вниз, вверх, вбок), берём боковой ряд каждого блока.
+## Блоки: ходьба, получение урона, гибель. flip: если сбоку смотрит влево.
+func _bug(dir: String, file: String, cell_w: int, counts: Array, flip: bool) -> void:
+	var anims := ["walk", "hurt", "die"]
+	var sheets: Array = []
+	for i in 3:
+		sheets.append([anims[i], file, cell_w, counts[i], i * 3 + 2, 64])
+	_unit(dir, FOOZLE, sheets, 0.8, 10, [1, 1, 1], flip)
+
+
 ## Портрет для круглой кнопки: верх первого кадра стояния (голова и плечи), увеличенный в целое число раз, 128×128.
-func _portrait(dir: String) -> void:
+## ax: где по ширине центр квадрата (0.5 посередине; у драконов голова справа), frac: доля картинки в квадрате,
+## ay: насколько опустить квадрат (доля высоты).
+func _portrait(dir: String, ax := 0.5, frac := 1.0, ay := 0.0) -> void:
 	var src := Image.load_from_file(_path(dir + "/idle_00.png"))
 	var side := mini(src.get_width(), src.get_height())
-	var top := src.get_region(Rect2i((src.get_width() - side) / 2, 0, side, side))
+	if ax != 0.5 and src.get_width() > src.get_height() * 1.2:
+		side = int(src.get_height() * 0.8)
+	side = int(side * frac)
+	var left := (src.get_width() - side) / 2 if ax == 0.5 else clampi(int(src.get_width() * ax) - side / 2, 0, src.get_width() - side)
+	var y := clampi(int(src.get_height() * ay), 0, src.get_height() - side)
+	var top := src.get_region(Rect2i(left, y, side, side))
 	var k := maxi(1, 128 / side)
 	top.resize(side * k, side * k, Image.INTERPOLATE_NEAREST)
 	var out := Image.create(128, 128, false, Image.FORMAT_RGBA8)

@@ -13,6 +13,7 @@ var rage := 0.0         # оставшееся время ярости (толь
 
 var _shot_cd := 0.0
 var _time := 0.0
+var _sprite_base := Vector2.ZERO   # где стоит спрайт без покачивания
 
 
 ## Вызывается до добавления героя на карту.
@@ -48,6 +49,20 @@ func _art_dir() -> String:
 
 func _art_feet() -> Vector2:
 	return Vector2(0, -6.0) if flying else Vector2(0, radius * 0.8)
+
+
+func _setup_art() -> void:
+	super._setup_art()
+	if _sprite != null:
+		_sprite_base = _sprite.position
+
+
+## Летающий герой покачивается в воздухе, а при выстреле чуть подаётся вперёд.
+func _update_sprite() -> void:
+	super._update_sprite()
+	if flying:
+		var lunge := face * 3.0 if _swing > 0.0 else 0.0
+		_sprite.position = _sprite_base + Vector2(lunge, sin(_time * 3.0) * 2.5)
 
 
 func is_ranged() -> bool:

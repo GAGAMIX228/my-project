@@ -45,6 +45,7 @@ func _ready() -> void:
 
 
 ## Все типы врагов в двух рядах: настоящие Enemy (как в бою), у каждого своя короткая дорога и скорость 0.
+## Третий ряд: существа из запаса на будущие земли (assets/art/reserve), в бой они пока не выходят.
 class EnemyGallery extends Node2D:
 	func _ready() -> void:
 		var types: Array = Defs.ENEMIES.keys()
@@ -53,7 +54,7 @@ class EnemyGallery extends Node2D:
 			road.curve = Curve2D.new()
 			road.curve.add_point(Vector2.ZERO)
 			road.curve.add_point(Vector2(3000, 0))
-			road.position = Vector2(85 + (i % 6) * 158, 150 + (i / 6) * 220)
+			road.position = Vector2(85 + (i % 6) * 158, 130 + (i / 6) * 170)
 			add_child(road)
 			var enemy := Enemy.new()
 			enemy.setup(types[i])
@@ -69,6 +70,20 @@ class EnemyGallery extends Node2D:
 			label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 			label.add_theme_font_override("font", Ui.font())
 			road.add_child(label)
+		var reserve := ["firebug", "leafbug", "magma_crab", "scorpion"]
+		for i in reserve.size():
+			var sprite := ArtPack.make_sprite("reserve/" + reserve[i], Vector2(160 + i * 210, 470))
+			if sprite == null:
+				continue
+			add_child(sprite)
+			ArtPack.play(sprite, "walk")
+			var label := Label.new()
+			label.text = "запас: " + reserve[i]
+			label.position = Vector2(90 + i * 210, 482)
+			label.custom_minimum_size.x = 140
+			label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+			label.add_theme_font_override("font", Ui.font())
+			add_child(label)
 
 	func _draw() -> void:
 		draw_rect(Rect2(0, 0, 960, 540), Color("7dba58"))

@@ -6,5 +6,7 @@
 |---|---|---|---|
 | [Tiny Swords](https://pixelfrog-assets.itch.io/tiny-swords) | Pixel Frog | люди (воин, лучник, монах, пешка), здания людей (башни), деревья, кусты, камни, земля, дома гоблинов, башни ворот | CC0 (свободное использование, в том числе коммерческое) |
 | [Tiny RPG Character Asset Pack](https://zerie.itch.io/tiny-rpg-character-asset-pack) | Zerie | орк и солдат (бесплатная версия) | бесплатно, можно использовать в игре без указания автора |
+| [Evolving Dragons](https://michael-jay-rov.itch.io/evolving-dragons) (архив «Evolution Dragons») | Michael Jay Rov | драконы-герои: Ашгар, Морвен, Зефира (взрослая стадия) | CC BY-SA 4.0: указывать автора; изменённые картинки распространяются на тех же условиях. В архиве лицензии нет, страницу набора сверить перед публикацией |
+| [Spire - Enemy Pack 2](https://foozlecc.itch.io/) (Ground) | Baldur, издатель Foozle | запас на будущие земли: огненный жук, листовой жук, магмовый краб, скорпион (`assets/art/reserve`) | CC0 (указано в Readme набора) |
 
 Оттенки (разные орки из одного орка) и масштаб заданы в `meta.json` рядом с кадрами. Исходные наборы в репозитории не хранятся: их нужно распаковать в папку `raw_art` (см. `tools/import_art.gd`).

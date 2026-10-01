@@ -26,6 +26,8 @@
 4. Фон уровня собирается отдельно: `godot --headless --path . --script tools/make_level_bg.gd`.
 5. Запиши набор и его лицензию в `assets/CREDITS.md`.
 
+Если анимация лежит только в **GIF** (Godot GIF не открывает), импортёр читает его сам (`tools/gif_reader.gd`): см. `_gif_unit` в `tools/import_art.gd`. Если персонаж смотрит влево, у `_unit` и `_gif_unit` есть флаг отражения.
+
 ## Где что лежит
 
 ```
@@ -40,6 +42,7 @@ assets/art/
   soldiers/knight/idle_00.png ...         рыцари казармы и призванные бойцы
   projectiles/arrow.png ...               стрелы, шары, снаряды
   icons/heart.png ...                     значки интерфейса
+  reserve/<имя>/walk_00.png ...           запас на будущие земли (игра пока не читает, видно на скриншоте enemies)
   _templates/                             шаблоны-подсказки (не трогать)
 ```
 
