@@ -1,0 +1,27 @@
+# Состояние работы (для продолжения)
+
+Обновлено: 2026-10-09.
+
+## Сделано
+- Пайплайн: `train.py`, `predict.py`, `src/common.py`, журнал гипотез `experiments/`.
+- 16 гипотез проверено на 1-м фолде, таблица в README и `experiments/results.csv`.
+  Лучшее: MLP 512-256, dropout 0.2, 40 эпох (~0.872 macro-F1 на фолде).
+- Подтверждено моделированием: EM-поправка на частоты классов помогает при сдвиге
+  (`experiments/prior_shift_sim.py`). Включена в `predict.py` по умолчанию.
+- `train.py` уже содержит финальный конфиг (dropout 0.2, epochs 40, 5 фолдов).
+
+## Не доделано / следующие шаги
+1. Обучить финальную модель: `python train.py --data-dir data` (~30 мин на CPU)
+   → `weights/model.pt`, закоммитить веса и `weights/model_report.json`.
+2. Сабмиты на public_test, два варианта для сравнения на лидерборде:
+   - `python predict.py --test data/public_test.npz --out-dir submissions/em`
+   - `python predict.py --test data/public_test.npz --out-dir submissions/none --prior-shift none`
+   Пользователь грузит оба в Яндекс.Контест и сообщает скор → решаем про EM.
+3. Идеи дальше: ансамбль нескольких seed'ов, LightGBM (не запускали — медленно на 2048 признаках),
+   блендинг MLP + логрег (`experiments/blend.py`), полный 5-fold для топ-3 конфигов.
+4. 16.10 — закрытый тест, сабмит до 19.10 + форма со ссылкой на код (публичный доступ).
+
+## Данные
+Не в git (1 ГБ). Скачать в новом контейнере:
+`pip install gdown && gdown 1Zulx7cK6_MXWrtN9xM4tqPr2YdhHNyR0 && unzip -j A_public.zip -d data/`
+В окружении Default разрешены домены: drive.google.com, drive.usercontent.google.com, *.googleusercontent.com.
