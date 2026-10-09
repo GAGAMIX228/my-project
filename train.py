@@ -79,6 +79,7 @@ def main():
         "in_dim": X.shape[1],
         "preprocessor": pre.state(),
         "scales": scales,
+        "train_prior": np.bincount(y, minlength=len(CLASSES)) / len(y),
         "states": states,
     }, args.out)
     with open(os.path.splitext(args.out)[0] + "_report.json", "w") as f:

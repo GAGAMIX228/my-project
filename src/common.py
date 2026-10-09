@@ -189,3 +189,21 @@ def cross_fitted_scaled_f1(proba, y, folds: int = 5, seed: int = 0):
         s, _ = fit_class_scales(proba[fit_idx], y[fit_idx])
         pred[ev_idx] = (proba[ev_idx] * s).argmax(1)
     return macro_f1(y, pred)
+
+
+def em_prior_shift(proba, train_prior, n_iter: int = 100, tol: float = 1e-6):
+    """Оценка частот классов на неразмеченном тесте (Saerens et al., 2002).
+    proba — вероятности модели, обученной при частотах train_prior.
+    Возвращает (оценка test_prior, пересчитанные под неё вероятности)."""
+    train_prior = np.asarray(train_prior, dtype=np.float64)
+    prior = train_prior.copy()
+    for _ in range(n_iter):
+        adj = proba * (prior / train_prior)
+        adj /= adj.sum(1, keepdims=True)
+        new = adj.mean(0)
+        if np.abs(new - prior).max() < tol:
+            prior = new
+            break
+        prior = new
+    adj = proba * (prior / train_prior)
+    return prior, adj / adj.sum(1, keepdims=True)

@@ -3,6 +3,7 @@
 Запуск:
     python predict.py --test data/public_test.npz
     python predict.py --test data/private_test.npz --out-dir submissions
+    python predict.py --prior-shift none          # без поправки на частоты классов
 """
 import argparse
 import os
@@ -10,7 +11,7 @@ import os
 import numpy as np
 import torch
 
-from src.common import CLASSES, MLP, Preprocessor, load_npz, predict_proba_mlp
+from src.common import CLASSES, MLP, Preprocessor, em_prior_shift, load_npz, predict_proba_mlp
 
 
 def main():
@@ -18,6 +19,10 @@ def main():
     ap.add_argument("--test", default="data/public_test.npz")
     ap.add_argument("--weights", default="weights/model.pt")
     ap.add_argument("--out-dir", default=".")
+    ap.add_argument("--prior-shift", choices=["em", "none"], default="em",
+                    help="em — оценить частоты классов теста EM-алгоритмом и пересчитать вероятности")
+    ap.add_argument("--scales", action="store_true",
+                    help="применить множители классов, подобранные на OOF train")
     args = ap.parse_args()
 
     ckpt = torch.load(args.weights, map_location="cpu", weights_only=False)
@@ -33,7 +38,12 @@ def main():
         model.load_state_dict(state)
         proba += predict_proba_mlp(model, Xn) / len(ckpt["states"])
 
-    pred = CLASSES[(proba * ckpt["scales"]).argmax(1)]
+    if args.prior_shift == "em":
+        est, proba = em_prior_shift(proba, ckpt["train_prior"])
+        print("EM-оценка частот классов в тесте:", dict(zip(CLASSES.tolist(), np.round(est, 3).tolist())))
+    if args.scales:
+        proba = proba * ckpt["scales"]
+    pred = CLASSES[proba.argmax(1)]
 
     os.makedirs(args.out_dir, exist_ok=True)
     out = os.path.join(args.out_dir, f"submission_seed_{seed}.npz")
