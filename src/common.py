@@ -92,6 +92,31 @@ class MLP(nn.Module):
         return self.net(x)
 
 
+class TwoTowerMLP(nn.Module):
+    """Эмбеддинг = конкатенация двух L2-нормированных векторов по 1024 (почти некоррелированных).
+    Каждую половину обрабатывает своя «башня», затем общая голова."""
+
+    def __init__(self, in_dim: int, hidden=(256, 256), n_classes: int = 4, dropout: float = 0.3):
+        super().__init__()
+        half, (h_tower, h_head) = in_dim // 2, hidden
+        self.half = half
+
+        def tower():
+            return nn.Sequential(nn.Dropout(dropout / 2), nn.Linear(half, h_tower),
+                                 nn.BatchNorm1d(h_tower), nn.GELU(), nn.Dropout(dropout))
+        self.t0, self.t1 = tower(), tower()
+        self.head = nn.Sequential(nn.Linear(2 * h_tower, h_head), nn.BatchNorm1d(h_head), nn.GELU(),
+                                  nn.Dropout(dropout), nn.Linear(h_head, n_classes))
+
+    def forward(self, x):
+        return self.head(torch.cat([self.t0(x[:, :self.half]), self.t1(x[:, self.half:])], 1))
+
+
+def build_model(in_dim, arch="mlp", hidden=(512, 256), dropout=0.3):
+    cls = TwoTowerMLP if arch == "twotower" else MLP
+    return cls(in_dim, tuple(hidden), len(CLASSES), dropout)
+
+
 def count_params(model: nn.Module) -> int:
     return sum(p.numel() for p in model.parameters())
 
@@ -105,11 +130,11 @@ def class_weights(y, power: float):
 
 def train_mlp(X_tr, y_tr, X_va=None, y_va=None, *, seed, hidden=(512, 256), dropout=0.3,
               epochs=40, batch_size=512, lr=2e-3, weight_decay=1e-2, label_smoothing=0.05,
-              cw_power=0.5, mixup=0.0, device="cpu", verbose=False):
+              cw_power=0.5, mixup=0.0, arch="mlp", device="cpu", verbose=False):
     """Обучает MLP. Если передан val — сохраняет лучшую по macro-F1 эпоху.
     Возвращает (model, best_epoch, best_f1)."""
     set_seed(seed)
-    model = MLP(X_tr.shape[1], hidden, len(CLASSES), dropout).to(device)
+    model = build_model(X_tr.shape[1], arch, hidden, dropout).to(device)
     opt = torch.optim.AdamW(model.parameters(), lr=lr, weight_decay=weight_decay)
     steps = epochs * int(np.ceil(len(X_tr) / batch_size))
     sched = torch.optim.lr_scheduler.OneCycleLR(opt, max_lr=lr, total_steps=steps, pct_start=0.1)

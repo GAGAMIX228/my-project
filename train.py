@@ -32,6 +32,7 @@ CONFIG = dict(
     label_smoothing=0.05,
     cw_power=0.5,
     mixup=0.0,
+    arch="mlp",
 )
 
 
@@ -55,7 +56,7 @@ def main():
     Xn = pre.transform(X)
 
     mlp_kw = {k: CONFIG[k] for k in ("hidden", "dropout", "epochs", "batch_size", "lr",
-                                     "weight_decay", "label_smoothing", "cw_power", "mixup")}
+                                     "weight_decay", "label_smoothing", "cw_power", "mixup", "arch")}
     skf = StratifiedKFold(n_splits=CONFIG["folds"], shuffle=True, random_state=seed)
     oof = np.zeros((len(X), len(CLASSES)), dtype=np.float32)
     states = []

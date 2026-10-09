@@ -84,6 +84,11 @@ EXPERIMENTS = {
     "mlp_small":      (run_mlp, dict(cw_power=0.5, hidden=(256,)), "Маленький MLP, 1 скрытый слой 256"),
     "mlp_wide":       (run_mlp, dict(cw_power=0.5, hidden=(1024, 512), dropout=0.4), "Широкий MLP 1024-512"),
     "mlp_mixup":      (run_mlp, dict(cw_power=0.5, mixup=0.4), "MLP + mixup(0.4)"),
+    "mlp_drop01":     (run_mlp, dict(cw_power=0.5, dropout=0.1), "MLP + dropout 0.1"),
+    "mlp_drop02":     (run_mlp, dict(cw_power=0.5, dropout=0.2), "MLP + dropout 0.2"),
+    "mlp_ep40":       (run_mlp, dict(cw_power=0.5, epochs=40), "MLP 512-256, 40 эпох"),
+    "twotower":       (run_mlp, dict(cw_power=0.5, arch="twotower", hidden=(256, 256)),
+                       "Две башни (по половине эмбеддинга) 256+256 -> 256"),
     "mlp_drop05":     (run_mlp, dict(cw_power=0.5, dropout=0.5), "MLP + dropout 0.5"),
 }
 
@@ -115,7 +120,7 @@ def main():
     skf = StratifiedKFold(n_splits=args.folds, shuffle=True, random_state=args.seed)
     for name in names:
         fn, kw, desc = EXPERIMENTS[name]
-        if fn is run_mlp and args.epochs:
+        if fn is run_mlp and args.epochs and "epochs" not in kw:
             kw = {**kw, "epochs": args.epochs}
         t0 = time.time()
         oof = np.zeros((len(X), len(CLASSES)), dtype=np.float32)

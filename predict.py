@@ -11,7 +11,7 @@ import os
 import numpy as np
 import torch
 
-from src.common import CLASSES, MLP, Preprocessor, em_prior_shift, load_npz, predict_proba_mlp
+from src.common import CLASSES, Preprocessor, build_model, em_prior_shift, load_npz, predict_proba_mlp
 
 
 def main():
@@ -34,7 +34,7 @@ def main():
 
     proba = np.zeros((len(X), len(CLASSES)), dtype=np.float32)
     for state in ckpt["states"]:
-        model = MLP(ckpt["in_dim"], tuple(cfg["hidden"]), len(CLASSES), cfg["dropout"])
+        model = build_model(ckpt["in_dim"], cfg.get("arch", "mlp"), cfg["hidden"], cfg["dropout"])
         model.load_state_dict(state)
         proba += predict_proba_mlp(model, Xn) / len(ckpt["states"])
 
