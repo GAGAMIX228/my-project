@@ -1,0 +1,6 @@
+data/
+__pycache__/
+*.pyc
+experiments/oof/
+submission_seed_*.npz
+.ipynb_checkpoints/
