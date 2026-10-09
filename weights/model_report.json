@@ -1,0 +1,29 @@
+{
+  "seed": 862236,
+  "oof_macro_f1": 0.8701933969342163,
+  "oof_macro_f1_scaled": 0.8705141403747904,
+  "scales": [
+    1.0,
+    1.0717734625362931,
+    1.0,
+    0.9330329915368074
+  ],
+  "n_params": 5914900,
+  "config": {
+    "folds": 5,
+    "l2": false,
+    "hidden": [
+      512,
+      256
+    ],
+    "dropout": 0.2,
+    "epochs": 40,
+    "batch_size": 512,
+    "lr": 0.002,
+    "weight_decay": 0.01,
+    "label_smoothing": 0.05,
+    "cw_power": 0.5,
+    "mixup": 0.0,
+    "arch": "mlp"
+  }
+}
