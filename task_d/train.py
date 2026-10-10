@@ -1,15 +1,23 @@
-"""Задача D — обучение финального ансамбля. Метки train сильно зашумлены (CV RMSE ~10.5, а на
-чистом тесте ~2), поэтому главный резерв — снижение разброса моделей усреднением:
-  * CatBoost depth=6 (исходные признаки и + признаки «покрытия»), несколько seed'ов;
-  * LightGBM num_leaves=8 + признаки «покрытия», несколько seed'ов;
-  * RandomForest (большой min_samples_leaf — сам усредняет шум).
-Итог — среднее групп моделей. Число деревьев бустингов — по early stopping на 5-fold CV.
+"""Задача D — обучение финального ансамбля.
 
-Public LB (проверенные гипотезы):
+Метки train сильно зашумлены (CV RMSE ~10.5, на тесте ~1.6), поэтому главный резерв — снижение
+разброса усреднением. Лучше всего на LB сработала смесь моделей РАЗНОЙ сложности:
+три уровня, на каждом CatBoost x5 seed + LightGBM(+признаки «покрытия») x5 seed, всё усредняется.
+
+  уровень   CatBoost depth   LightGBM num_leaves / min_child / lambda
+  base      6                8  / 40 / 5
+  mid       7                16 / 30 / 1
+  sharp     8                31 / 20 / 1
+
+Число деревьев каждой модели — по early stopping на 5-fold CV (KFold random_state=0), x1.1.
+
+Проверенные гипотезы (public LB):
   LGBM 71.64 | LGBM на logit-цели 62.16 | ridge на logit 54.39 | константа 0
-  LGBM8+FE (5 seed) 72.49 | CatBoost 72.55 | их среднее 75.62
-  CatBoost x5 + CatBoost+FE x5 + LGBM+FE x5: 74.22; + RandomForest: 70.31 (RF вредит)
-  CatBoost x5 + LGBM+FE x5 пополам: 76.27  <- финал
+  LGBM8+FE (5 seed) 72.49 | CatBoost 72.55 | их среднее 75.62 | CatBoost x5 + LGBM x5 (base) 76.27
+  + CatBoost+FE / + RandomForest: 74.22 / 70.31 | + XGBoost по трети: 76.22
+  взвешенный МНК 1/sigma^2: 71.14 | «сглаженные» (lr 0.015, extra_trees): 74.46 | топ-30 признаков: 74.21
+  без групп признаков: survey 70.13, regional 74.93, claims 76.03, aggregates 38.08
+  sharp (d8/31): 76.48 | sharper (d10/63): 73.84 | base+sharp: 77.09 | base+mid+sharp: 77.25 <- финал
 
     python task_d/train.py [--seed N]
 """
@@ -18,26 +26,23 @@ import json
 import os
 import sys
 
-import joblib
 import lightgbm as lgb
 import numpy as np
 import pandas as pd
 from catboost import CatBoostRegressor
-from sklearn.ensemble import RandomForestRegressor
 from sklearn.model_selection import KFold
 
 HERE = os.path.dirname(os.path.abspath(__file__))
 sys.path.insert(0, HERE)
 from common import CAT_FEATURES, TARGET, load, make_features  # noqa: E402
 
-CONFIG = dict(
-    n_seeds=5,
-    groups=["catboost", "lgbm_fe"],  # catboost_fe и rf_fe проверены и отключены (см. docstring)
-    catboost=dict(learning_rate=0.03, depth=6),
-    lgbm=dict(learning_rate=0.02, num_leaves=8, min_child_samples=40, subsample=0.8, subsample_freq=1,
-              colsample_bytree=0.5, reg_lambda=5),
-    rf=dict(n_estimators=500, min_samples_leaf=20, max_features=0.3),
-)
+LEVELS = {
+    "base":  dict(cat=dict(depth=6), lgbm=dict(num_leaves=8, min_child_samples=40, reg_lambda=5)),
+    "mid":   dict(cat=dict(depth=7), lgbm=dict(num_leaves=16, min_child_samples=30, reg_lambda=1)),
+    "sharp": dict(cat=dict(depth=8), lgbm=dict(num_leaves=31, min_child_samples=20, reg_lambda=1)),
+}
+CONFIG = dict(n_seeds=5, levels=LEVELS, cat_lr=0.03, cat_es=dict(base=200, mid=300, sharp=300),
+              lgbm_common=dict(learning_rate=0.02, subsample=0.8, subsample_freq=1, colsample_bytree=0.5))
 
 
 def prep(df, ref, extra, kind):
@@ -48,17 +53,9 @@ def prep(df, ref, extra, kind):
     elif kind == "lgbm":
         for c in CAT_FEATURES:
             X[c] = pd.Categorical(X[c], categories=sorted(ref[c].dropna().unique()))
-    else:  # rf: one-hot + заполнение пропусков
-        X = pd.get_dummies(X, columns=CAT_FEATURES, dtype=float)
-        X = X.fillna(-1)
+    else:  # rf/прочие: one-hot + заполнение пропусков
+        X = pd.get_dummies(X, columns=CAT_FEATURES, dtype=float).fillna(-1)
     return X
-
-
-def n_trees(make, X, y):
-    its = []
-    for a, b in KFold(5, shuffle=True, random_state=0).split(X):
-        its.append(make(a, b))
-    return int(np.mean(its) * 1.1)
 
 
 def main():
@@ -74,40 +71,37 @@ def main():
         os.remove(os.path.join(args.out_dir, f))
     tr = load(os.path.join(args.data_dir, "hard_train.csv"))
     y = tr[TARGET].values
-    meta = dict(seed=seed, config=CONFIG, models={}, columns={})
+    Xc, Xl = prep(tr, tr, False, "cat"), prep(tr, tr, True, "lgbm")
+    kf = list(KFold(5, shuffle=True, random_state=0).split(tr))
+    meta = dict(seed=seed, config=CONFIG, models={}, columns={"cat": list(Xc.columns), "lgbm": list(Xl.columns)})
 
-    for g in CONFIG["groups"]:
-        extra = g.endswith("_fe")
-        if g.startswith("catboost"):
-            X = prep(tr, tr, extra, "cat")
-            n = n_trees(lambda a, b: CatBoostRegressor(iterations=5000, **CONFIG["catboost"], verbose=0,
-                        cat_features=CAT_FEATURES, early_stopping_rounds=200, allow_writing_files=False)
-                        .fit(X.iloc[a], y[a], eval_set=(X.iloc[b], y[b])).tree_count_, X, y)
-            files = []
-            for k in range(CONFIG["n_seeds"]):
-                m = CatBoostRegressor(iterations=n, **CONFIG["catboost"], verbose=0, cat_features=CAT_FEATURES,
-                                      random_seed=seed + k, allow_writing_files=False).fit(X, y)
-                files.append(f"{g}_{k}.cbm")
-                m.save_model(os.path.join(args.out_dir, files[-1]))
-        elif g.startswith("lgbm"):
-            X = prep(tr, tr, extra, "lgbm")
-            n = n_trees(lambda a, b: lgb.LGBMRegressor(n_estimators=5000, **CONFIG["lgbm"], verbose=-1)
-                        .fit(X.iloc[a], y[a], eval_set=[(X.iloc[b], y[b])],
-                             callbacks=[lgb.early_stopping(200, verbose=False)]).best_iteration_, X, y)
-            files = []
-            for k in range(CONFIG["n_seeds"]):
-                m = lgb.LGBMRegressor(n_estimators=n, **CONFIG["lgbm"], verbose=-1, random_state=seed + k).fit(X, y)
-                files.append(f"{g}_{k}.txt")
-                m.booster_.save_model(os.path.join(args.out_dir, files[-1]))
-        else:
-            X = prep(tr, tr, extra, "rf")
-            n = CONFIG["rf"]["n_estimators"]
-            m = RandomForestRegressor(**CONFIG["rf"], n_jobs=-1, random_state=seed).fit(X, y)
-            files = [f"{g}.joblib"]
-            joblib.dump(m, os.path.join(args.out_dir, files[0]), compress=3)
-        meta["models"][g] = dict(files=files, trees=n, extra=extra)
-        meta["columns"][g] = list(X.columns)
-        print(f"{g}: {len(files)} моделей по {n} деревьев", flush=True)
+    for lvl, p in LEVELS.items():
+        cp = dict(learning_rate=CONFIG["cat_lr"], **p["cat"])
+        es = CONFIG["cat_es"][lvl]
+        its = [CatBoostRegressor(iterations=8000 if es == 300 else 5000, **cp, verbose=0, cat_features=CAT_FEATURES,
+                                 early_stopping_rounds=es, allow_writing_files=False)
+               .fit(Xc.iloc[a], y[a], eval_set=(Xc.iloc[b], y[b])).tree_count_ for a, b in kf]
+        nc = int(np.mean(its) * 1.1)
+        cat_files = []
+        for k in range(CONFIG["n_seeds"]):
+            m = CatBoostRegressor(iterations=nc, **cp, verbose=0, cat_features=CAT_FEATURES, random_seed=seed + k,
+                                  allow_writing_files=False).fit(Xc, y)
+            cat_files.append(f"{lvl}_cat_{k}.cbm")
+            m.save_model(os.path.join(args.out_dir, cat_files[-1]))
+
+        lp = dict(**CONFIG["lgbm_common"], **p["lgbm"], verbose=-1)
+        its = [lgb.LGBMRegressor(n_estimators=8000 if lvl != "base" else 5000, **lp)
+               .fit(Xl.iloc[a], y[a], eval_set=[(Xl.iloc[b], y[b])],
+                    callbacks=[lgb.early_stopping(200, verbose=False)]).best_iteration_ for a, b in kf]
+        nl = int(np.mean(its) * 1.1)
+        lgbm_files = []
+        for k in range(CONFIG["n_seeds"]):
+            m = lgb.LGBMRegressor(n_estimators=nl, **lp, random_state=seed + k).fit(Xl, y)
+            lgbm_files.append(f"{lvl}_lgbm_{k}.txt")
+            m.booster_.save_model(os.path.join(args.out_dir, lgbm_files[-1]))
+        meta["models"][lvl] = dict(cat=cat_files, lgbm=lgbm_files, cat_trees=nc, lgbm_trees=nl)
+        print(f"{lvl}: CatBoost {nc} деревьев x{CONFIG['n_seeds']}, LightGBM {nl} деревьев x{CONFIG['n_seeds']}",
+              flush=True)
     json.dump(meta, open(os.path.join(args.out_dir, "meta.json"), "w"), ensure_ascii=False, indent=2)
 
 
