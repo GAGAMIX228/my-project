@@ -21,6 +21,8 @@ def main():
     ap.add_argument("--out-dir", default=".")
     ap.add_argument("--prior-shift", choices=["em", "none"], default="em",
                     help="em — оценить частоты классов теста EM-алгоритмом и пересчитать вероятности")
+    ap.add_argument("--test-norm", action="store_true",
+                    help="стандартизировать тест по его собственным среднему/std (борьба со сдвигом домена)")
     ap.add_argument("--scales", action="store_true",
                     help="применить множители классов, подобранные на OOF train")
     args = ap.parse_args()
@@ -30,6 +32,8 @@ def main():
     pre = Preprocessor.from_state(ckpt["preprocessor"])
 
     X, _ = load_npz(args.test)
+    if args.test_norm:
+        pre.fit(X)
     Xn = pre.transform(X)
 
     proba = np.zeros((len(X), len(CLASSES)), dtype=np.float32)

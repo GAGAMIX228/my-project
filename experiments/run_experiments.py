@@ -130,9 +130,15 @@ def main():
         splits = [(np.sort(order[n_va:]), np.sort(order[:n_va]))]
         print(f"adversarial-валидация: {n_va} самых тестоподобных примеров, классы {np.bincount(y[order[:n_va]])}")
     elif args.groups:
-        from sklearn.cluster import MiniBatchKMeans
-        km = MiniBatchKMeans(n_clusters=args.groups, batch_size=8192, n_init=3, random_state=args.seed)
-        groups = km.fit_predict(X)
+        gpath = os.path.join(ROOT, "experiments", f"groups_{args.groups}.npy")
+        if os.path.exists(gpath) and not args.max_rows:
+            groups = np.load(gpath)
+        else:
+            from sklearn.cluster import MiniBatchKMeans
+            km = MiniBatchKMeans(n_clusters=args.groups, batch_size=8192, n_init=1, random_state=args.seed)
+            groups = km.fit_predict(X)
+            if not args.max_rows:
+                np.save(gpath, groups.astype(np.int32))
         print(f"кластеров: {args.groups}, размер: медиана {np.median(np.bincount(groups)):.0f}")
         skf = StratifiedGroupKFold(n_splits=args.folds, shuffle=True, random_state=args.seed)
         splits = list(skf.split(X, y, groups))
