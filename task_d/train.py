@@ -5,7 +5,11 @@
   * RandomForest (большой min_samples_leaf — сам усредняет шум).
 Итог — среднее групп моделей. Число деревьев бустингов — по early stopping на 5-fold CV.
 
-Public LB: LGBM 71.64 -> LGBM8+FE (5 seed) 72.49, CatBoost 72.55, их среднее 75.62.
+Public LB (проверенные гипотезы):
+  LGBM 71.64 | LGBM на logit-цели 62.16 | ridge на logit 54.39 | константа 0
+  LGBM8+FE (5 seed) 72.49 | CatBoost 72.55 | их среднее 75.62
+  CatBoost x5 + CatBoost+FE x5 + LGBM+FE x5: 74.22; + RandomForest: 70.31 (RF вредит)
+  CatBoost x5 + LGBM+FE x5 пополам: 76.27  <- финал
 
     python task_d/train.py [--seed N]
 """
@@ -28,7 +32,7 @@ from common import CAT_FEATURES, TARGET, load, make_features  # noqa: E402
 
 CONFIG = dict(
     n_seeds=5,
-    groups=["catboost", "catboost_fe", "lgbm_fe", "rf_fe"],
+    groups=["catboost", "lgbm_fe"],  # catboost_fe и rf_fe проверены и отключены (см. docstring)
     catboost=dict(learning_rate=0.03, depth=6),
     lgbm=dict(learning_rate=0.02, num_leaves=8, min_child_samples=40, subsample=0.8, subsample_freq=1,
               colsample_bytree=0.5, reg_lambda=5),
