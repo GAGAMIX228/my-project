@@ -109,3 +109,4 @@ logit-mean ансамбль: s60 68.93, +best 74.61 — хуже.
 Страховка: все 4 predict.py проверены на переименованных копиях тестов — совпадают с лучшими LB. C: сортировка wav устойчива к нечисловым именам. Инструкция: FINAL_STEPS.md.
 Проба g=logit-ens - best (из чата): лучший бленд локально оптимален вдоль 3 направлений.
 Новая гипотеза: структура в y + потеря в logit (LightGBM custom objective) — task_d/experiments/ystruct_logitloss.py.
+ystruct (custom obj): OOF logit-MSE 0.3906 vs MSE-деревья 0.4212 (но логит-ансамбль ~0.372 и провалился => метрика ненадёжна). Отправлены ystruct_mean, ystruct_median, ystruct_mean_plus_best.
