@@ -1,0 +1,20 @@
+{
+  "seed": 185065,
+  "config": {
+    "wavlm_layer": 6,
+    "logreg_C": 0.1,
+    "lgbm": {
+      "n_estimators": 400,
+      "learning_rate": 0.05,
+      "num_leaves": 31,
+      "subsample": 0.8,
+      "subsample_freq": 1,
+      "colsample_bytree": 0.5,
+      "class_weight": "balanced"
+    }
+  },
+  "n_train_spec": 25380,
+  "n_train_wavlm": 8580,
+  "classifier_params": 25169,
+  "wavlm_backbone": "microsoft/wavlm-base-plus (94.4M, frozen)"
+}
