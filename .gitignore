@@ -8,3 +8,4 @@ submissions/
 task_b/data/
 task_b/oof/
 submission_seed_*.csv
+catboost_info/
