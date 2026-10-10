@@ -17,6 +17,9 @@
    - `python predict.py --test data/public_test.npz --out-dir submissions/em`
    - `python predict.py --test data/public_test.npz --out-dir submissions/none --prior-shift none`
    Пользователь грузит оба в Яндекс.Контест и сообщает скор → решаем про EM.
+   СДЕЛАНО 10.10: EM-оценка частот public_test ≈ train (angry .31, neutral .18, positive .31, sad .195),
+   т.е. сдвига в public нет; варианты em/none отличаются в 82 из 6600 предсказаний.
+   Пользователю отправлен em-вариант двумя частями (лимит 30 МБ), ждём скор.
 3. Идеи дальше: ансамбль нескольких seed'ов, LightGBM (не запускали — медленно на 2048 признаках),
    блендинг MLP + логрег (`experiments/blend.py`), полный 5-fold для топ-3 конфигов.
 4. 16.10 — закрытый тест, сабмит до 19.10 + форма со ссылкой на код (публичный доступ).
