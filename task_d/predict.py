@@ -27,7 +27,11 @@ def main():
     ap.add_argument("--out-dir", default=".")
     args = ap.parse_args()
     meta = json.load(open(os.path.join(args.weights, "meta.json")))
-    ref = load(os.path.join(args.data_dir, "hard_train.csv"))  # только для списка категорий
+    cats_path = os.path.join(args.weights, "categories.json")  # список категорий train (для LightGBM)
+    if os.path.exists(cats_path):
+        ref = pd.DataFrame({c: pd.Series(v) for c, v in json.load(open(cats_path)).items()})
+    else:
+        ref = load(os.path.join(args.data_dir, "hard_train.csv"))
     te = load(args.test)
     Xc = prep(te, ref, False, "cat")[meta["columns"]["cat"]]
     Xl = prep(te, ref, True, "lgbm")[meta["columns"]["lgbm"]]

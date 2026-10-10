@@ -103,6 +103,8 @@ def main():
         print(f"{lvl}: CatBoost {nc} деревьев x{CONFIG['n_seeds']}, LightGBM {nl} деревьев x{CONFIG['n_seeds']}",
               flush=True)
     json.dump(meta, open(os.path.join(args.out_dir, "meta.json"), "w"), ensure_ascii=False, indent=2)
+    json.dump({c: sorted(tr[c].dropna().unique().tolist()) for c in CAT_FEATURES},
+              open(os.path.join(args.out_dir, "categories.json"), "w"), ensure_ascii=False, indent=1)
 
 
 if __name__ == "__main__":

@@ -1,0 +1,48 @@
+{
+ "region": [
+  "FarEast",
+  "Moscow",
+  "NorthWest",
+  "SPb",
+  "Siberia",
+  "South",
+  "Ural",
+  "Volga"
+ ],
+ "city_type": [
+  "large_city",
+  "metro",
+  "rural",
+  "town"
+ ],
+ "gender": [
+  "F",
+  "M"
+ ],
+ "education": [
+  "bachelor",
+  "master",
+  "phd",
+  "secondary"
+ ],
+ "family_status": [
+  "divorced",
+  "married",
+  "single",
+  "widowed"
+ ],
+ "employment": [
+  "business_owner",
+  "employed",
+  "retired",
+  "self_employed",
+  "student",
+  "unemployed"
+ ],
+ "wealth_segment": [
+  "affluent",
+  "mass",
+  "premium",
+  "private"
+ ]
+}
