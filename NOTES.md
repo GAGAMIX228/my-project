@@ -70,3 +70,4 @@ LGBM на logit-цели: 62.16 (хуже) -> предсказывать сре�
 Отправлены: LGBM leaves=8+FE (5 seed, seed 31348) и CatBoost depth=6, ждём скоры.
 LGBM8+FE 72.49, CatBoost 72.55, их среднее 75.62 (разброс моделей — главное).
 Ансамбль task_d/train.py seed 352773 (CatBoost x5, CatBoost+FE x5, LGBM+FE x5, RF): отправлены с RF и без.
+Ансамбль 352773: все 4 группы 70.31 (RF вредит), без RF 74.22. Отправлен catboost+lgbm_fe 50/50.
