@@ -101,3 +101,4 @@ QuantReg logit: a=0.068, b=0.980. Отправлены cal_qr_best, median_model
 Медианная гипотеза НЕ подтвердилась на LB: cal_qr_best 72.65, median_models 70.30, смесь 73.49 (все хуже 77.25). Отправлен reflect = 2*best - cal (сдвиг в обратную сторону).
 reflect (обратный сдвиг): 71.43 — хуже; бленд в оптимуме по сдвигу.
 Новая гипотеза: оценивать z в logit (эффективно) + переводить в СРЕДНЕЕ E[100*sigmoid(z+eps)] (task_d/experiments/logit_mean.py).
+logit-mean: s_hat=0.61; s=0.6 mean 68.53 (best 68.50), RMSE к 77.25 1.38. Отправлены s60 и s60_plus_best.
