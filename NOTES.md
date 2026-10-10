@@ -102,3 +102,7 @@ QuantReg logit: a=0.068, b=0.980. Отправлены cal_qr_best, median_model
 reflect (обратный сдвиг): 71.43 — хуже; бленд в оптимуме по сдвигу.
 Новая гипотеза: оценивать z в logit (эффективно) + переводить в СРЕДНЕЕ E[100*sigmoid(z+eps)] (task_d/experiments/logit_mean.py).
 logit-mean: s_hat=0.61; s=0.6 mean 68.53 (best 68.50), RMSE к 77.25 1.38. Отправлены s60 и s60_plus_best.
+Проверка Б (шум в признаках): детерминированные связи одинаковы в train/test — нет.
+Проверка А: парадокс реален на одних фолдах (ridge-логит 10.249 < деревья 10.378).
+logit-mean ансамбль: s60 68.93, +best 74.61 — хуже.
+Проба вдоль g = best - ridge (RMS 2.64): g_plus = best+0.5g, g_minus = best-0.5g.
