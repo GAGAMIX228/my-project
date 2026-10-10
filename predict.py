@@ -23,6 +23,8 @@ def main():
                     help="em — оценить частоты классов теста EM-алгоритмом и пересчитать вероятности")
     ap.add_argument("--test-norm", action="store_true",
                     help="стандартизировать тест по его собственным среднему/std (борьба со сдвигом домена)")
+    ap.add_argument("--logreg-weight", type=float, default=None,
+                    help="переопределить долю логрега в смеси (по умолчанию — из конфига весов)")
     ap.add_argument("--scales", action="store_true",
                     help="применить множители классов, подобранные на OOF train")
     args = ap.parse_args()
@@ -42,7 +44,7 @@ def main():
         model.load_state_dict(state)
         proba += predict_proba_mlp(model, Xn) / len(ckpt["states"])
 
-    w = cfg.get("logreg_weight", 0.0)
+    w = cfg.get("logreg_weight", 0.0) if args.logreg_weight is None else args.logreg_weight
     if w > 0 and ckpt.get("logreg") is not None:
         logits = Xn @ ckpt["logreg"]["coef"].T + ckpt["logreg"]["intercept"]
         p_lr = np.exp(logits - logits.max(1, keepdims=True))
