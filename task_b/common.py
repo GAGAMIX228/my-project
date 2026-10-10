@@ -47,3 +47,23 @@ def best_threshold(y, proba):
     scores = [f1_score(y, proba >= t) for t in grid]
     i = int(np.argmax(scores))
     return float(grid[i]), float(scores[i])
+
+
+def build_gam(columns, n_knots=3, degree=3, C=1.0):
+    """GAM-подобная модель: кубический сплайн по каждому числовому признаку (узлы по квантилям)
+    + one-hot категорий, поверх — логистическая регрессия. Модель аддитивна в логит-пространстве:
+    logit P(accepted) = b + sum_i f_i(x_i), где каждая f_i — гладкая кривая."""
+    from sklearn.compose import ColumnTransformer
+    from sklearn.impute import SimpleImputer
+    from sklearn.linear_model import LogisticRegression
+    from sklearn.pipeline import make_pipeline
+    from sklearn.preprocessing import OneHotEncoder, SplineTransformer, StandardScaler
+    num = [c for c in columns if c not in CAT_FEATURES]
+    nan_cols = ["loan_amount", "credit_score", "mobile_app_usage", "insurance_claims"]
+    pre = ColumnTransformer([
+        ("spl", make_pipeline(SimpleImputer(strategy="median"),
+                              SplineTransformer(n_knots=n_knots, degree=degree, knots="quantile",
+                                                extrapolation="linear")), num),
+        ("ind", SimpleImputer(strategy="median", add_indicator=True), [c for c in nan_cols if c in num]),
+        ("cat", OneHotEncoder(handle_unknown="ignore"), [c for c in CAT_FEATURES if c in columns])])
+    return make_pipeline(pre, StandardScaler(with_mean=False), LogisticRegression(C=C, max_iter=5000))

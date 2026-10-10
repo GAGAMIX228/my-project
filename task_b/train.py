@@ -1,16 +1,19 @@
-"""Задача B — обучение финальной модели: ансамбль 5 CatBoost (по фолдам) + порог под F1,
-подобранный на OOF-вероятностях.
+"""Задача B — обучение финальной модели: смесь (пополам) двух ансамблей по 5 фолдам:
+  * GAM — сплайны по признакам + логистическая регрессия (≈146 параметров на модель);
+  * CatBoost depth=4.
+Порог под F1 подбирается на OOF-вероятностях смеси.
 
     python task_b/train.py                 # seed выбирается случайно и печатается
     python task_b/train.py --seed 12345    # воспроизведение
 
-Результат: task_b/weights/fold{k}.cbm и task_b/weights/meta.json (seed, порог, признаки).
+Результат: task_b/weights/{gam,cb}_fold{k}.* и task_b/weights/meta.json.
 """
 import argparse
 import json
 import os
 import sys
 
+import joblib
 import numpy as np
 from catboost import CatBoostClassifier
 from sklearn.metrics import f1_score, roc_auc_score
@@ -18,17 +21,16 @@ from sklearn.model_selection import StratifiedKFold
 
 HERE = os.path.dirname(os.path.abspath(__file__))
 sys.path.insert(0, HERE)
-from common import CAT_FEATURES, TARGET, best_threshold, load, make_features, set_seed  # noqa: E402
+from common import (CAT_FEATURES, TARGET, best_threshold, build_gam, load,  # noqa: E402
+                    make_features, set_seed)
 
-# Конфиг финальной модели. Выбран по результатам task_b/results.csv.
+# Конфиг финальной модели. Выбран по результатам task_b/results.csv:
+# GAM k=3 — F1 0.959, CatBoost d4 — 0.950, смесь 50/50 — 0.961 (5-fold CV ×3).
 CONFIG = dict(
     folds=5,
-    extra_features=True,
-    iterations=3000,
-    learning_rate=0.03,
-    depth=6,
-    l2_leaf_reg=3,
-    early_stopping_rounds=200,
+    gam=dict(n_knots=3, degree=3, C=1.0),
+    catboost=dict(iterations=3000, learning_rate=0.03, depth=4, l2_leaf_reg=3, early_stopping_rounds=200),
+    gam_weight=0.5,
 )
 
 
@@ -45,29 +47,38 @@ def main():
 
     df = load(os.path.join(args.data_dir, "train.csv"))
     y = df[TARGET].values
-    X = make_features(df, extra=CONFIG["extra_features"])
+    X = make_features(df, extra=False)
     cats = [c for c in CAT_FEATURES if c in X.columns]
     os.makedirs(args.out_dir, exist_ok=True)
+    for f in os.listdir(args.out_dir):  # убираем веса прошлых версий
+        os.remove(os.path.join(args.out_dir, f))
 
-    oof = np.zeros(len(df))
+    oof_gam, oof_cb = np.zeros(len(df)), np.zeros(len(df))
     skf = StratifiedKFold(CONFIG["folds"], shuffle=True, random_state=seed)
-    trees = []
+    n_params, trees = 0, []
     for k, (tr, va) in enumerate(skf.split(X, y)):
-        m = CatBoostClassifier(iterations=CONFIG["iterations"], learning_rate=CONFIG["learning_rate"],
-                               depth=CONFIG["depth"], l2_leaf_reg=CONFIG["l2_leaf_reg"],
-                               early_stopping_rounds=CONFIG["early_stopping_rounds"], eval_metric="AUC",
-                               random_seed=seed + k, verbose=0, cat_features=cats)
-        m.fit(X.iloc[tr], y[tr], eval_set=(X.iloc[va], y[va]))
-        oof[va] = m.predict_proba(X.iloc[va])[:, 1]
-        m.save_model(os.path.join(args.out_dir, f"fold{k}.cbm"))
-        trees.append(m.tree_count_)
-        print(f"fold {k}: деревьев {m.tree_count_}, AUC {roc_auc_score(y[va], oof[va]):.4f}")
+        gam = build_gam(list(X.columns), **CONFIG["gam"]).fit(X.iloc[tr], y[tr])
+        oof_gam[va] = gam.predict_proba(X.iloc[va])[:, 1]
+        joblib.dump(gam, os.path.join(args.out_dir, f"gam_fold{k}.joblib"))
+        n_params += gam[-1].coef_.size + 1
 
+        cb = CatBoostClassifier(**CONFIG["catboost"], eval_metric="AUC", random_seed=seed + k,
+                                verbose=0, cat_features=cats, allow_writing_files=False)
+        cb.fit(X.iloc[tr], y[tr], eval_set=(X.iloc[va], y[va]))
+        oof_cb[va] = cb.predict_proba(X.iloc[va])[:, 1]
+        cb.save_model(os.path.join(args.out_dir, f"cb_fold{k}.cbm"))
+        trees.append(cb.tree_count_)
+        print(f"fold {k}: F1@0.5 GAM {f1_score(y[va], oof_gam[va] >= .5):.4f}, "
+              f"CatBoost {f1_score(y[va], oof_cb[va] >= .5):.4f} ({cb.tree_count_} деревьев)")
+
+    w = CONFIG["gam_weight"]
+    oof = w * oof_gam + (1 - w) * oof_cb
     thr, f1 = best_threshold(y, oof)
-    print(f"OOF AUC {roc_auc_score(y, oof):.4f}; F1@0.5 {f1_score(y, oof >= 0.5):.4f}; "
-          f"F1@{thr:.3f} {f1:.4f}")
-    meta = {"seed": seed, "threshold": thr, "oof_f1": f1, "oof_auc": roc_auc_score(y, oof),
-            "folds": CONFIG["folds"], "trees": trees, "features": list(X.columns), "config": CONFIG}
+    print(f"OOF: GAM {f1_score(y, oof_gam >= .5):.4f}, CatBoost {f1_score(y, oof_cb >= .5):.4f}, "
+          f"смесь F1@0.5 {f1_score(y, oof >= .5):.4f}, F1@{thr:.3f} {f1:.4f}, AUC {roc_auc_score(y, oof):.4f}")
+    meta = {"seed": seed, "threshold": thr, "oof_f1": f1, "oof_f1_at_05": f1_score(y, oof >= .5),
+            "oof_auc": roc_auc_score(y, oof), "gam_params_total": int(n_params), "cb_trees": trees,
+            "features": list(X.columns), "config": CONFIG}
     with open(os.path.join(args.out_dir, "meta.json"), "w") as f:
         json.dump(meta, f, ensure_ascii=False, indent=2)
     print(f"сохранено в {args.out_dir}")

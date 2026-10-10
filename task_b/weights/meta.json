@@ -1,15 +1,16 @@
 {
-  "seed": 717483,
-  "threshold": 0.4749999999999999,
-  "oof_f1": 0.9525752167261601,
-  "oof_auc": 0.9929729400960238,
-  "folds": 5,
-  "trees": [
-    371,
-    197,
-    677,
-    743,
-    460
+  "seed": 654255,
+  "threshold": 0.4599999999999999,
+  "oof_f1": 0.962944290395765,
+  "oof_f1_at_05": 0.9595316874522779,
+  "oof_auc": 0.9935451487622902,
+  "gam_params_total": 734,
+  "cb_trees": [
+    642,
+    611,
+    836,
+    1122,
+    701
   ],
   "features": [
     "age",
@@ -38,23 +39,22 @@
     "marketing_contacts_last_year",
     "previous_campaign_response",
     "previous_insurance",
-    "insurance_claims",
-    "phone_price_to_income",
-    "balance_to_income",
-    "loan_to_income",
-    "phone_value_left",
-    "app_missing",
-    "credit_score_missing",
-    "claims_per_year",
-    "log_city_population"
+    "insurance_claims"
   ],
   "config": {
     "folds": 5,
-    "extra_features": true,
-    "iterations": 3000,
-    "learning_rate": 0.03,
-    "depth": 6,
-    "l2_leaf_reg": 3,
-    "early_stopping_rounds": 200
+    "gam": {
+      "n_knots": 3,
+      "degree": 3,
+      "C": 1.0
+    },
+    "catboost": {
+      "iterations": 3000,
+      "learning_rate": 0.03,
+      "depth": 4,
+      "l2_leaf_reg": 3,
+      "early_stopping_rounds": 200
+    },
+    "gam_weight": 0.5
   }
 }

@@ -68,7 +68,7 @@ def fit_logreg(Xtr, ytr, Xva, yva, seed, **kw):
     return m.predict_proba(Xva)[:, 1], 0
 
 
-def fit_gam(Xtr, ytr, Xva, yva, seed, n_knots=8, C=1.0, **kw):
+def fit_gam(Xtr, ytr, Xva, yva, seed, n_knots=8, C=1.0, degree=3, **kw):
     """GAM-подобная модель: сплайн по каждому числовому признаку + one-hot категорий,
     поверх — логистическая регрессия. Аддитивна в логит-пространстве."""
     from sklearn.compose import ColumnTransformer
@@ -80,7 +80,7 @@ def fit_gam(Xtr, ytr, Xva, yva, seed, n_knots=8, C=1.0, **kw):
     nan_cols = [c for c in num if Xtr[c].isna().any() or Xva[c].isna().any()]
     pre = ColumnTransformer([
         ("spl", make_pipeline(SimpleImputer(strategy="median"),
-                              SplineTransformer(n_knots=n_knots, degree=3, knots="quantile",
+                              SplineTransformer(n_knots=n_knots, degree=degree, knots="quantile",
                                                 extrapolation="linear")), num),
         ("ind", make_pipeline(SimpleImputer(strategy="median", add_indicator=True)), nan_cols),
         ("cat", OneHotEncoder(handle_unknown="ignore"), CAT_FEATURES)])
@@ -102,6 +102,13 @@ EXPERIMENTS = {
     "gam":           (fit_gam, False, {}, "GAM: сплайны по признакам + логрег"),
     "gam_fe":        (fit_gam, True, {}, "GAM + сгенерированные признаки"),
     "gam_k5":        (fit_gam, False, {"n_knots": 5}, "GAM, 5 узлов сплайна"),
+    "gam_k3":        (fit_gam, False, {"n_knots": 3}, "GAM, 3 узла сплайна"),
+    "gam_k2":        (fit_gam, False, {"n_knots": 2}, "GAM, 2 узла (кубика без внутренних узлов)"),
+    "gam_k3_d2":     (fit_gam, False, {"n_knots": 3, "degree": 2}, "GAM, 3 узла, квадратичные сплайны"),
+    "gam_k3_d1":     (fit_gam, False, {"n_knots": 3, "degree": 1}, "GAM, 3 узла, кусочно-линейные"),
+    "gam_k4":        (fit_gam, False, {"n_knots": 4}, "GAM, 4 узла сплайна"),
+    "gam_k4_C03":    (fit_gam, False, {"n_knots": 4, "C": 0.3}, "GAM, 4 узла, C=0.3"),
+    "gam_k5_C03":    (fit_gam, False, {"n_knots": 5, "C": 0.3}, "GAM, 5 узлов, C=0.3"),
     "gam_k6":        (fit_gam, False, {"n_knots": 6}, "GAM, 6 узлов сплайна"),
     "gam_C03":       (fit_gam, False, {"C": 0.3}, "GAM, сильнее регуляризация C=0.3"),
     "gam_C3":        (fit_gam, False, {"C": 3.0}, "GAM, слабее регуляризация C=3"),

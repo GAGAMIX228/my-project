@@ -8,6 +8,7 @@ import json
 import os
 import sys
 
+import joblib
 import numpy as np
 import pandas as pd
 from catboost import CatBoostClassifier
@@ -27,13 +28,17 @@ def main():
     with open(os.path.join(args.weights, "meta.json")) as f:
         meta = json.load(f)
     df = load(args.test)
-    X = make_features(df, extra=meta["config"]["extra_features"])[meta["features"]]
+    X = make_features(df, extra=False)[meta["features"]]
+    cfg = meta["config"]
 
-    proba = np.zeros(len(df))
-    for k in range(meta["folds"]):
-        m = CatBoostClassifier()
-        m.load_model(os.path.join(args.weights, f"fold{k}.cbm"))
-        proba += m.predict_proba(X)[:, 1] / meta["folds"]
+    p_gam, p_cb = np.zeros(len(df)), np.zeros(len(df))
+    for k in range(cfg["folds"]):
+        gam = joblib.load(os.path.join(args.weights, f"gam_fold{k}.joblib"))
+        p_gam += gam.predict_proba(X)[:, 1] / cfg["folds"]
+        cb = CatBoostClassifier()
+        cb.load_model(os.path.join(args.weights, f"cb_fold{k}.cbm"))
+        p_cb += cb.predict_proba(X)[:, 1] / cfg["folds"]
+    proba = cfg["gam_weight"] * p_gam + (1 - cfg["gam_weight"]) * p_cb
 
     pred = (proba >= meta["threshold"]).astype(int)
     os.makedirs(args.out_dir, exist_ok=True)
