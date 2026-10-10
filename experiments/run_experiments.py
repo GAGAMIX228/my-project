@@ -101,6 +101,8 @@ def main():
     ap.add_argument("--seed", type=int, default=20261009)
     ap.add_argument("--eval-folds", type=int, default=0, help="оценивать только первые N фолдов (быстрый отбор)")
     ap.add_argument("--epochs", type=int, default=0, help="переопределить число эпох MLP")
+    ap.add_argument("--adv-val", type=float, default=0.0,
+                    help="q>0: валидация = доля q самых тестоподобных примеров train (adversarial.py)")
     ap.add_argument("--groups", type=int, default=0,
                     help="K>0: групповой CV по K кластерам эмбеддингов («псевдоговорящие»)")
     ap.add_argument("--max-rows", type=int, default=0, help="подвыборка для быстрых проверок")
@@ -119,7 +121,15 @@ def main():
     res_path = os.path.join(ROOT, "experiments", "results.csv")
     new_file = not os.path.exists(res_path)
 
-    if args.groups:
+    if args.adv_val:
+        adv = np.load(os.path.join(ROOT, "experiments", "adv_scores.npy"))
+        if args.max_rows:
+            adv = adv[idx]
+        order = np.argsort(-adv)
+        n_va = int(len(X) * args.adv_val)
+        splits = [(np.sort(order[n_va:]), np.sort(order[:n_va]))]
+        print(f"adversarial-валидация: {n_va} самых тестоподобных примеров, классы {np.bincount(y[order[:n_va]])}")
+    elif args.groups:
         from sklearn.cluster import MiniBatchKMeans
         km = MiniBatchKMeans(n_clusters=args.groups, batch_size=8192, n_init=3, random_state=args.seed)
         groups = km.fit_predict(X)
@@ -151,7 +161,8 @@ def main():
         row = dict(name=name, description=desc, cv_f1=round(f1_raw, 4),
                    cv_f1_std=round(float(np.std(fold_f1)), 4), cv_f1_tuned=round(f1_tuned, 4),
                    params=n_params, minutes=round((time.time() - t0) / 60, 1), seed=args.seed,
-                   rows=int(done.sum()), cv=f"group{args.groups}" if args.groups else "random", epochs=kw.get("epochs", 40) if fn is run_mlp else "")
+                   rows=int(done.sum()), cv=(f"adv{args.adv_val}" if args.adv_val else
+                                                f"group{args.groups}" if args.groups else "random"), epochs=kw.get("epochs", 40) if fn is run_mlp else "")
         print(row)
         with open(res_path, "a", newline="") as f:
             wr = csv.DictWriter(f, fieldnames=list(row))
