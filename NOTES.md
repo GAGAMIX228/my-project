@@ -48,3 +48,11 @@ CV F1: логрег 0.940, LightGBM 0.950, CatBoost 0.953 (порог 0.475). Л
 Не в git (1 ГБ). Скачать в новом контейнере:
 `pip install gdown && gdown 1Zulx7cK6_MXWrtN9xM4tqPr2YdhHNyR0 && unzip -j A_public.zip -d data/`
 В окружении Default разрешены домены: drive.google.com, drive.usercontent.google.com, *.googleusercontent.com.
+
+## Задача C (task_c/) — анти-спуфинг, ROC-AUC
+Данные: gdown --folder 1RXBJiYEHBT3U9gOuzhguT5y8ytOjHrEx -> task_c/data/{train/flac,train/targets.txt,public_test}.
+Обучаться можно ТОЛЬКО на train задачи (полный ASVspoof 2019 брать нельзя); тест — использовать нельзя.
+Валидация: leave-one-attack-out (A01–A06), bonafide разделены по говорящим.
+LB (public): spec LightGBM 98.46 (финал, seed 185065) | WavLM-L6 логрег 45.86 | смесь 79.88.
+Вывод: признаки WavLM не переносятся на синтезаторы теста, хотя на CV хороши (0.976).
+Домены для HF добавлены (huggingface.co, *.huggingface.co, *.hf.co).

@@ -1,6 +1,7 @@
 {
   "seed": 185065,
   "config": {
+    "use_wavlm": false,
     "wavlm_layer": 6,
     "logreg_C": 0.1,
     "lgbm": {
@@ -14,7 +15,5 @@
     }
   },
   "n_train_spec": 25380,
-  "n_train_wavlm": 8580,
-  "classifier_params": 25169,
-  "wavlm_backbone": "microsoft/wavlm-base-plus (94.4M, frozen)"
+  "tree_nodes": 24400
 }
