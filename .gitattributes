@@ -1,0 +1,4 @@
+# Model weights must be byte-identical on every OS (no CRLF conversion on Windows).
+weights/** binary
+task_*/weights/** binary
+reference/** -text
