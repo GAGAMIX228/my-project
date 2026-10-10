@@ -68,6 +68,28 @@ def fit_logreg(Xtr, ytr, Xva, yva, seed, **kw):
     return m.predict_proba(Xva)[:, 1], 0
 
 
+def fit_gam(Xtr, ytr, Xva, yva, seed, n_knots=8, C=1.0, **kw):
+    """GAM-подобная модель: сплайн по каждому числовому признаку + one-hot категорий,
+    поверх — логистическая регрессия. Аддитивна в логит-пространстве."""
+    from sklearn.compose import ColumnTransformer
+    from sklearn.impute import SimpleImputer
+    from sklearn.linear_model import LogisticRegression
+    from sklearn.pipeline import make_pipeline
+    from sklearn.preprocessing import OneHotEncoder, SplineTransformer, StandardScaler
+    num = [c for c in Xtr.columns if c not in CAT_FEATURES]
+    nan_cols = [c for c in num if Xtr[c].isna().any() or Xva[c].isna().any()]
+    pre = ColumnTransformer([
+        ("spl", make_pipeline(SimpleImputer(strategy="median"),
+                              SplineTransformer(n_knots=n_knots, degree=3, knots="quantile",
+                                                extrapolation="linear")), num),
+        ("ind", make_pipeline(SimpleImputer(strategy="median", add_indicator=True)), nan_cols),
+        ("cat", OneHotEncoder(handle_unknown="ignore"), CAT_FEATURES)])
+    m = make_pipeline(pre, StandardScaler(with_mean=False), LogisticRegression(C=C, max_iter=5000))
+    m.fit(Xtr, ytr)
+    n_params = m[-1].coef_.size + 1
+    return m.predict_proba(Xva)[:, 1], n_params
+
+
 EXPERIMENTS = {
     "logreg":        (fit_logreg, False, {}, "Логрег (one-hot, медианы, стандартизация)"),
     "logreg_fe":     (fit_logreg, True, {}, "Логрег + сгенерированные признаки"),
@@ -77,6 +99,9 @@ EXPERIMENTS = {
     "catboost_fe":   (fit_catboost, True, {}, "CatBoost + сгенерированные признаки"),
     "catboost_d4":   (fit_catboost, True, {"depth": 4}, "CatBoost depth=4"),
     "catboost_d8":   (fit_catboost, True, {"depth": 8}, "CatBoost depth=8"),
+    "gam":           (fit_gam, False, {}, "GAM: сплайны по признакам + логрег"),
+    "gam_fe":        (fit_gam, True, {}, "GAM + сгенерированные признаки"),
+    "gam_k12":       (fit_gam, True, {"n_knots": 12}, "GAM, 12 узлов сплайна"),
     "catboost_bal":  (fit_catboost, True, {"auto_class_weights": "Balanced"}, "CatBoost + веса классов"),
 }
 
