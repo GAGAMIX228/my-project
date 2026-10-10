@@ -54,7 +54,7 @@ D — `task_d/data/hard_train.csv` (только список категорий
         и обязательно заполнить — https://forms.yandex.ru/u/6a8b1453e010db8926c82e95/
    - C: https://forms.yandex.ru/u/6a9679b1e010db034586dc37
    - D: https://forms.yandex.ru/u/6a95100702848fc99a1df08f
-   - B: ссылка на форму — в условии задачи B в контесте (в скопированном тексте её не было).
+   - B: https://forms.yandex.ru/u/6a887aad9029024c31c9d954 (та же, что у A)
 
 ## Важно
 - Итоговый рейтинг считается по закрытому набору,
