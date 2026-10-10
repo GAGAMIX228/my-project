@@ -41,6 +41,27 @@ def make_features(df: pd.DataFrame, extra: bool = True) -> pd.DataFrame:
     return X
 
 
+# Попарные взаимодействия, отобранные жадно по CV (task_b/experiments/interactions.py):
+# GAM k=3 0.9589 -> 0.9613 F1. Нормировка — по статистикам train (фиксированы ниже при обучении).
+PAIRS = [("smartphone_price", "smartphone_age_months"), ("monthly_income", "smartphone_age_months"),
+         ("previous_campaign_response", "previous_insurance"), ("smartphone_price", "online_payments_share")]
+
+
+def add_pairs(X, stats):
+    """stats: {col: (mean, std)} по train."""
+    X = X.copy()
+    for a, b in PAIRS:
+        za = ((X[a] - stats[a][0]) / stats[a][1]).fillna(0)
+        zb = ((X[b] - stats[b][0]) / stats[b][1]).fillna(0)
+        X[f"{a}*{b}"] = za * zb
+    return X
+
+
+def pair_stats(X):
+    cols = {c for p in PAIRS for c in p}
+    return {c: (float(X[c].mean()), float(X[c].std())) for c in cols}
+
+
 def best_threshold(y, proba):
     """Порог вероятности, максимизирующий F1 (по сетке 0.05..0.95)."""
     grid = np.linspace(0.05, 0.95, 181)

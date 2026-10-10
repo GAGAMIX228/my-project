@@ -1,10 +1,10 @@
 {
   "seed": 654255,
-  "threshold": 0.4599999999999999,
-  "oof_f1": 0.962944290395765,
-  "oof_f1_at_05": 0.9595316874522779,
-  "oof_auc": 0.9935451487622902,
-  "gam_params_total": 734,
+  "threshold": 0.49999999999999994,
+  "oof_f1": 0.9610786059526838,
+  "oof_f1_at_05": 0.9610786059526838,
+  "oof_auc": 0.9935977859151289,
+  "gam_params_total": 834,
   "cb_trees": [
     642,
     611,
@@ -41,6 +41,32 @@
     "previous_insurance",
     "insurance_claims"
   ],
+  "pair_stats": {
+    "previous_campaign_response": [
+      0.2703333333333333,
+      0.444169003015101
+    ],
+    "previous_insurance": [
+      0.475,
+      0.49941622863923635
+    ],
+    "monthly_income": [
+      89196.73016666666,
+      59848.17054883992
+    ],
+    "smartphone_age_months": [
+      19.311333333333334,
+      13.059038809881653
+    ],
+    "smartphone_price": [
+      43768.90316666666,
+      35977.75533251416
+    ],
+    "online_payments_share": [
+      0.7002929999999999,
+      0.21235913107538334
+    ]
+  },
   "config": {
     "folds": 5,
     "gam": {
@@ -55,6 +81,7 @@
       "l2_leaf_reg": 3,
       "early_stopping_rounds": 200
     },
-    "gam_weight": 0.5
+    "gam_weight": 0.5,
+    "gam_pairs": true
   }
 }

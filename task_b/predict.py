@@ -15,7 +15,7 @@ from catboost import CatBoostClassifier
 
 HERE = os.path.dirname(os.path.abspath(__file__))
 sys.path.insert(0, HERE)
-from common import ID, TARGET, load, make_features  # noqa: E402
+from common import ID, TARGET, add_pairs, load, make_features  # noqa: E402
 
 
 def main():
@@ -34,7 +34,8 @@ def main():
     p_gam, p_cb = np.zeros(len(df)), np.zeros(len(df))
     for k in range(cfg["folds"]):
         gam = joblib.load(os.path.join(args.weights, f"gam_fold{k}.joblib"))
-        p_gam += gam.predict_proba(X)[:, 1] / cfg["folds"]
+        Xg = add_pairs(X, meta["pair_stats"]) if cfg.get("gam_pairs") else X
+        p_gam += gam.predict_proba(Xg)[:, 1] / cfg["folds"]
         cb = CatBoostClassifier()
         cb.load_model(os.path.join(args.weights, f"cb_fold{k}.cbm"))
         p_cb += cb.predict_proba(X)[:, 1] / cfg["folds"]

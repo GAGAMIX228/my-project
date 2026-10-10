@@ -21,16 +21,17 @@ from sklearn.model_selection import StratifiedKFold
 
 HERE = os.path.dirname(os.path.abspath(__file__))
 sys.path.insert(0, HERE)
-from common import (CAT_FEATURES, TARGET, best_threshold, build_gam, load,  # noqa: E402
-                    make_features, set_seed)
+from common import (CAT_FEATURES, TARGET, add_pairs, best_threshold, build_gam, load,  # noqa: E402
+                    make_features, pair_stats, set_seed)
 
 # Конфиг финальной модели. Выбран по результатам task_b/results.csv:
-# GAM k=3 — F1 0.959, CatBoost d4 — 0.950, смесь 50/50 — 0.961 (5-fold CV ×3).
+# GAM k=3 — F1 0.959, CatBoost d4 — 0.950, смесь 50/50 — 0.961 (5-fold CV ×3); LB 96.18.
 CONFIG = dict(
     folds=5,
     gam=dict(n_knots=3, degree=3, C=1.0),
     catboost=dict(iterations=3000, learning_rate=0.03, depth=4, l2_leaf_reg=3, early_stopping_rounds=200),
     gam_weight=0.5,
+    gam_pairs=True,  # GAM + 4 попарных взаимодействия (CV 0.9589 -> 0.9613)
 )
 
 
@@ -49,6 +50,8 @@ def main():
     y = df[TARGET].values
     X = make_features(df, extra=False)
     cats = [c for c in CAT_FEATURES if c in X.columns]
+    stats = pair_stats(X)
+    Xg = add_pairs(X, stats) if CONFIG["gam_pairs"] else X
     os.makedirs(args.out_dir, exist_ok=True)
     for f in os.listdir(args.out_dir):  # убираем веса прошлых версий
         os.remove(os.path.join(args.out_dir, f))
@@ -57,8 +60,8 @@ def main():
     skf = StratifiedKFold(CONFIG["folds"], shuffle=True, random_state=seed)
     n_params, trees = 0, []
     for k, (tr, va) in enumerate(skf.split(X, y)):
-        gam = build_gam(list(X.columns), **CONFIG["gam"]).fit(X.iloc[tr], y[tr])
-        oof_gam[va] = gam.predict_proba(X.iloc[va])[:, 1]
+        gam = build_gam(list(Xg.columns), **CONFIG["gam"]).fit(Xg.iloc[tr], y[tr])
+        oof_gam[va] = gam.predict_proba(Xg.iloc[va])[:, 1]
         joblib.dump(gam, os.path.join(args.out_dir, f"gam_fold{k}.joblib"))
         n_params += gam[-1].coef_.size + 1
 
@@ -78,7 +81,7 @@ def main():
           f"смесь F1@0.5 {f1_score(y, oof >= .5):.4f}, F1@{thr:.3f} {f1:.4f}, AUC {roc_auc_score(y, oof):.4f}")
     meta = {"seed": seed, "threshold": thr, "oof_f1": f1, "oof_f1_at_05": f1_score(y, oof >= .5),
             "oof_auc": roc_auc_score(y, oof), "gam_params_total": int(n_params), "cb_trees": trees,
-            "features": list(X.columns), "config": CONFIG}
+            "features": list(X.columns), "pair_stats": stats, "config": CONFIG}
     with open(os.path.join(args.out_dir, "meta.json"), "w") as f:
         json.dump(meta, f, ensure_ascii=False, indent=2)
     print(f"сохранено в {args.out_dir}")
