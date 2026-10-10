@@ -14,6 +14,7 @@ import time
 
 import numpy as np
 import torch
+from sklearn.linear_model import LogisticRegression
 from sklearn.model_selection import StratifiedKFold
 
 from src.common import (CLASSES, Preprocessor, count_params, encode_targets, fit_class_scales,
@@ -33,7 +34,14 @@ CONFIG = dict(
     cw_power=0.5,
     mixup=0.0,
     arch="mlp",
+    logreg_weight=0.3,  # доля логрега в смеси с MLP-ансамблем (групповой CV: 0.8573 -> 0.8597)
 )
+
+
+def train_logreg(Xn, y, seed):
+    m = LogisticRegression(C=1.0, max_iter=2000, class_weight="balanced", random_state=seed)
+    m.fit(Xn, y)
+    return {"coef": m.coef_.astype(np.float32), "intercept": m.intercept_.astype(np.float32)}
 
 
 def main():
@@ -67,9 +75,10 @@ def main():
         states.append({n: t.cpu() for n, t in model.state_dict().items()})
         print(f"fold {k}: best epoch {ep}, val macro-F1 {f1:.4f} ({time.time() - t0:.0f}s)")
 
+    logreg = train_logreg(Xn, y, seed) if CONFIG["logreg_weight"] > 0 else None
     scales, f1_tuned = fit_class_scales(oof, y)
     f1_raw = macro_f1(y, oof.argmax(1))
-    n_params = count_params(model) * CONFIG["folds"]
+    n_params = count_params(model) * CONFIG["folds"] + (logreg["coef"].size + logreg["intercept"].size if logreg else 0)
     print(f"OOF macro-F1: {f1_raw:.4f} -> с множителями классов {f1_tuned:.4f}; scales={np.round(scales, 3)}")
     print(f"параметров в ансамбле: {n_params:,}")
 
@@ -82,6 +91,7 @@ def main():
         "scales": scales,
         "train_prior": np.bincount(y, minlength=len(CLASSES)) / len(y),
         "states": states,
+        "logreg": logreg,
     }, args.out)
     with open(os.path.splitext(args.out)[0] + "_report.json", "w") as f:
         json.dump({"seed": seed, "oof_macro_f1": f1_raw, "oof_macro_f1_scaled": f1_tuned,

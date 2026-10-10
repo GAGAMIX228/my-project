@@ -42,6 +42,12 @@ def main():
         model.load_state_dict(state)
         proba += predict_proba_mlp(model, Xn) / len(ckpt["states"])
 
+    w = cfg.get("logreg_weight", 0.0)
+    if w > 0 and ckpt.get("logreg") is not None:
+        logits = Xn @ ckpt["logreg"]["coef"].T + ckpt["logreg"]["intercept"]
+        p_lr = np.exp(logits - logits.max(1, keepdims=True))
+        proba = (1 - w) * proba + w * p_lr / p_lr.sum(1, keepdims=True)
+
     if args.prior_shift == "em":
         est, proba = em_prior_shift(proba, ckpt["train_prior"])
         print("EM-оценка частот классов в тесте:", dict(zip(CLASSES.tolist(), np.round(est, 3).tolist())))

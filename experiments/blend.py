@@ -21,6 +21,10 @@ args = ap.parse_args()
 _, y = load_npz(os.path.join(args.data_dir, "train.npz"))
 y = encode_targets(y)
 oofs = {n: np.load(os.path.join(ROOT, "experiments", "oof", f"{n}.npy")) for n in args.names}
+# при --eval-folds OOF заполнен не везде — берём только строки, где есть все модели
+mask = np.all([o.sum(1) > 0 for o in oofs.values()], axis=0)
+y = y[mask]
+oofs = {n: o[mask] for n, o in oofs.items()}
 for r in range(1, len(oofs) + 1):
     for combo in itertools.combinations(oofs, r):
         p = np.mean([oofs[n] for n in combo], axis=0)

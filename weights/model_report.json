@@ -8,7 +8,7 @@
     1.0,
     0.9330329915368074
   ],
-  "n_params": 5914900,
+  "n_params": 5923096,
   "config": {
     "folds": 5,
     "l2": false,
@@ -24,6 +24,7 @@
     "label_smoothing": 0.05,
     "cw_power": 0.5,
     "mixup": 0.0,
-    "arch": "mlp"
+    "arch": "mlp",
+    "logreg_weight": 0.3
   }
 }
