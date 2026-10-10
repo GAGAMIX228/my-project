@@ -5,3 +5,6 @@ experiments/oof/
 submission_seed_*.npz
 .ipynb_checkpoints/
 submissions/
+task_b/data/
+task_b/oof/
+submission_seed_*.csv

@@ -1,0 +1,46 @@
+"""Задача B — предсказание без обучения: читает task_b/weights и пишет submission_seed_{SEED}.csv.
+
+    python task_b/predict.py --test task_b/data/public_test.csv
+    python task_b/predict.py --test task_b/data/private_test.csv --out-dir submissions_b
+"""
+import argparse
+import json
+import os
+import sys
+
+import numpy as np
+import pandas as pd
+from catboost import CatBoostClassifier
+
+HERE = os.path.dirname(os.path.abspath(__file__))
+sys.path.insert(0, HERE)
+from common import ID, TARGET, load, make_features  # noqa: E402
+
+
+def main():
+    ap = argparse.ArgumentParser()
+    ap.add_argument("--test", default=os.path.join(HERE, "data", "public_test.csv"))
+    ap.add_argument("--weights", default=os.path.join(HERE, "weights"))
+    ap.add_argument("--out-dir", default=".")
+    args = ap.parse_args()
+
+    with open(os.path.join(args.weights, "meta.json")) as f:
+        meta = json.load(f)
+    df = load(args.test)
+    X = make_features(df, extra=meta["config"]["extra_features"])[meta["features"]]
+
+    proba = np.zeros(len(df))
+    for k in range(meta["folds"]):
+        m = CatBoostClassifier()
+        m.load_model(os.path.join(args.weights, f"fold{k}.cbm"))
+        proba += m.predict_proba(X)[:, 1] / meta["folds"]
+
+    pred = (proba >= meta["threshold"]).astype(int)
+    os.makedirs(args.out_dir, exist_ok=True)
+    out = os.path.join(args.out_dir, f"submission_seed_{meta['seed']}.csv")
+    pd.DataFrame({ID: df[ID], TARGET: pred}).to_csv(out, index=False)
+    print(f"{out}: {len(pred)} строк, доля 1 = {pred.mean():.3f}, порог {meta['threshold']:.3f}")
+
+
+if __name__ == "__main__":
+    main()
