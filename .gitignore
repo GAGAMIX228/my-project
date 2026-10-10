@@ -4,3 +4,4 @@ __pycache__/
 experiments/oof/
 submission_seed_*.npz
 .ipynb_checkpoints/
+submissions/
