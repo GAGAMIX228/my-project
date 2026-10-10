@@ -83,3 +83,4 @@ D v2 smooth 74.46, v3 top30 74.21 — хуже. Признаки train/test ра
 Абляция групп (3 seed): no_survey 70.13, no_regional 74.93, no_claims 76.03, no_aggregates 38.08 — «грязной» группы нет.
 Порча отдельных строк — нет (остатки одногорбые). Пробуем более «резкие» модели (smoothing вредит).
 D sharp (cat d8 + lgbm 31): 76.48 (новый лучший); sharper (d10/63): 73.84. Отправлен blend sharp+base.
+D blend sharp+base: 77.09 (лучший). Сумма 349.74. Отправлены blend3 (+xgb) и blend3 (+smooth).
