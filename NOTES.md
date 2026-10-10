@@ -84,3 +84,4 @@ D v2 smooth 74.46, v3 top30 74.21 — хуже. Признаки train/test ра
 Порча отдельных строк — нет (остатки одногорбые). Пробуем более «резкие» модели (smoothing вредит).
 D sharp (cat d8 + lgbm 31): 76.48 (новый лучший); sharper (d10/63): 73.84. Отправлен blend sharp+base.
 D blend sharp+base: 77.09 (лучший). Сумма 349.74. Отправлены blend3 (+xgb) и blend3 (+smooth).
+D blend3 (+xgb) 76.99, blend3 (+smooth) 76.65 — хуже 77.09. Делаем промежуточный уровень (cat d7 + lgbm 16).

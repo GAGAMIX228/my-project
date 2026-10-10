@@ -26,7 +26,10 @@ Xl, Xlt = prep(tr, tr, True, "lgbm"), prep(te, tr, True, "lgbm")
 kf = list(KFold(5, shuffle=True, random_state=0).split(tr))
 best = pd.read_csv(os.path.join(ROOT, "submissions_d/final/submission_seed_352773.csv")).protection_score.values
 
-for name, depth, leaves, mcs in [("sharp", 8, 31, 20), ("sharper", 10, 63, 10)]:
+import sys as _s
+LEVELS = {"sharp": (8, 31, 20), "sharper": (10, 63, 10), "mid": (7, 16, 30)}
+todo = _s.argv[1:] or ["sharp", "sharper"]
+for name, (depth, leaves, mcs) in [(n, LEVELS[n]) for n in todo]:
     its = [CatBoostRegressor(iterations=8000, learning_rate=0.03, depth=depth, verbose=0, cat_features=CAT_FEATURES,
                              early_stopping_rounds=300, allow_writing_files=False)
            .fit(Xc.iloc[a], y[a], eval_set=(Xc.iloc[b], y[b])).tree_count_ for a, b in kf]
