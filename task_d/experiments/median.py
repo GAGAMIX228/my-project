@@ -48,15 +48,23 @@ def save(name, p):
 
 
 # 1) OOF MSE-прогноз (уровень mid: CatBoost d7 + LGBM 16), тест — среднее фолдовых моделей
+cache = os.path.join(OUT, "oof_mid.npz")
 oof, mu_t = np.zeros(len(y)), np.zeros(len(te))
+if os.path.exists(cache):
+    kf_run = []
+    d = np.load(cache)
+    oof, mu_t = d["oof"], d["mu_t"]
+else:
+    kf_run = kf
 lpm = dict(learning_rate=0.02, num_leaves=16, min_child_samples=30, reg_lambda=1, subsample=0.8, subsample_freq=1,
            colsample_bytree=0.5, verbose=-1)
-for k, (a, b) in enumerate(kf):
+for k, (a, b) in enumerate(kf_run):
     c = CatBoostRegressor(iterations=762, learning_rate=0.03, depth=7, verbose=0, cat_features=CAT_FEATURES,
                           random_seed=k, allow_writing_files=False).fit(Xc.iloc[a], y[a])
     l_ = lgb.LGBMRegressor(n_estimators=645, **lpm, random_state=k).fit(Xl.iloc[a], y[a])
     oof[b] = (c.predict(Xc.iloc[b]) + l_.predict(Xl.iloc[b])) / 2
     mu_t += (c.predict(Xct) + l_.predict(Xlt)) / 2 / 5
+np.savez(cache, oof=oof, mu_t=mu_t)
 print("OOF RMSE (шумные метки):", round(float(np.sqrt(np.mean((oof - y) ** 2))), 3), flush=True)
 
 # 2) диагностика
@@ -68,7 +76,7 @@ for name, t in {"y": lambda v: v, "logit": lambda v: lg(v / 100)}.items():
 
 # 3) медианная калибровка
 cal = lgb.LGBMRegressor(objective="quantile", alpha=0.5, n_estimators=300, learning_rate=0.05, num_leaves=8,
-                        min_child_samples=300, monotone_constraints=[1], random_state=0, verbose=-1)
+                        min_child_samples=300, random_state=0, verbose=-1)  # monotone несовместим с quantile
 cal.fit(oof.reshape(-1, 1), y)
 qa, qb = sm.QuantReg(lg(y / 100), sm.add_constant(lg(oof / 100))).fit(q=0.5).params
 print(f"QuantReg в logit-шкале: a={qa:.3f}, b={qb:.3f} (b>1 => растяжение от центра)", flush=True)
