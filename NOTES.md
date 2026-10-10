@@ -94,3 +94,5 @@ C: lgbm5 98.72, catboost 98.82, lgbm5+cat (ранги) 98.85 -> лучший. С
 C: lgbm5+cat6x3 98.95, lgbm5+cat8x3 98.97. Сумма 350.41. Отправлен lgbm5+cat6+cat8.
 C lgbm5+cat6x3+cat8x3: 99.01 -> финал C. Сумма 350.45. train.py/predict.py обновлены, проверка воспроизводимости запущена.
 C final воспроизведён из train.py/predict.py (seed 185065): отличие от сабмита 99.01 = 0.0.
+B forward-отбор остановлен по просьбе (старт 4 пары: 0.9602).
+D: гипотеза латентного шума (y_obs=100*sigmoid(z+eps)) => нужна МЕДИАНА, а не среднее. task_d/experiments/median.py.
