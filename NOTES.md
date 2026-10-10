@@ -110,3 +110,7 @@ logit-mean ансамбль: s60 68.93, +best 74.61 — хуже.
 Проба g=logit-ens - best (из чата): лучший бленд локально оптимален вдоль 3 направлений.
 Новая гипотеза: структура в y + потеря в logit (LightGBM custom objective) — task_d/experiments/ystruct_logitloss.py.
 ystruct (custom obj): OOF logit-MSE 0.3906 vs MSE-деревья 0.4212 (но логит-ансамбль ~0.372 и провалился => метрика ненадёжна). Отправлены ystruct_mean, ystruct_median, ystruct_mean_plus_best.
+ystruct LB: mean 63.42, median 57.81, mean+best 72.78 — все хуже 77.25.
+E1 аудит ridge (experiments/ridge_audit*.py): тестовый прогноз = сабмит (1e-14), распределения OOF/тест совпадают
+(ridge-trees RMS 2.78 train / 2.64 test), колонки/NaN в порядке. Pipeline внутри фолдов: 10.241/10.228/10.241 (3 разбиения), 10-fold 10.234 — утечки нет.
+Неявное V = CV-MSE − test-MSE: LGBM 108.0, LGBM8+FE 105.3, ystruct-median 102.1, ridge 94.7 — НЕ постоянно => тест ≠ E[y_obs|x] при шуме train.
