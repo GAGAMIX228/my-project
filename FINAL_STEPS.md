@@ -10,6 +10,8 @@
 | C | 99.01 | 185065 | `python task_c/predict.py --test-dir <папка с .wav> --out-dir out_C` |
 | D | 77.25 | 352773 | `python task_d/predict.py --test <private>.csv --out-dir out_D` |
 
+Windows: `powershell -ExecutionPolicy Bypass -File .\run_private.ps1` (тесты в private\), сверка на публичных тестах — `python check_public.py`.
+
 Обучать заново **не нужно**: веса лежат в репозитории (`weights/`, `task_b/weights/`, `task_c/weights/`,
 `task_d/weights/`). Каждый `predict.py` пишет `submission_seed_{SEED}.{npz|csv}` — имя уже в нужном формате.
 
