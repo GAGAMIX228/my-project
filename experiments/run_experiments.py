@@ -14,7 +14,7 @@ import time
 
 import numpy as np
 from sklearn.linear_model import LogisticRegression
-from sklearn.model_selection import StratifiedKFold
+from sklearn.model_selection import StratifiedGroupKFold, StratifiedKFold
 
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 sys.path.insert(0, ROOT)
@@ -101,6 +101,8 @@ def main():
     ap.add_argument("--seed", type=int, default=20261009)
     ap.add_argument("--eval-folds", type=int, default=0, help="оценивать только первые N фолдов (быстрый отбор)")
     ap.add_argument("--epochs", type=int, default=0, help="переопределить число эпох MLP")
+    ap.add_argument("--groups", type=int, default=0,
+                    help="K>0: групповой CV по K кластерам эмбеддингов («псевдоговорящие»)")
     ap.add_argument("--max-rows", type=int, default=0, help="подвыборка для быстрых проверок")
     args = ap.parse_args()
 
@@ -117,7 +119,16 @@ def main():
     res_path = os.path.join(ROOT, "experiments", "results.csv")
     new_file = not os.path.exists(res_path)
 
-    skf = StratifiedKFold(n_splits=args.folds, shuffle=True, random_state=args.seed)
+    if args.groups:
+        from sklearn.cluster import MiniBatchKMeans
+        km = MiniBatchKMeans(n_clusters=args.groups, batch_size=8192, n_init=3, random_state=args.seed)
+        groups = km.fit_predict(X)
+        print(f"кластеров: {args.groups}, размер: медиана {np.median(np.bincount(groups)):.0f}")
+        skf = StratifiedGroupKFold(n_splits=args.folds, shuffle=True, random_state=args.seed)
+        splits = list(skf.split(X, y, groups))
+    else:
+        skf = StratifiedKFold(n_splits=args.folds, shuffle=True, random_state=args.seed)
+        splits = list(skf.split(X, y))
     for name in names:
         fn, kw, desc = EXPERIMENTS[name]
         if fn is run_mlp and args.epochs and "epochs" not in kw:
@@ -126,7 +137,7 @@ def main():
         oof = np.zeros((len(X), len(CLASSES)), dtype=np.float32)
         fold_f1 = []
         done = np.zeros(len(X), dtype=bool)
-        for k, (tr, va) in enumerate(skf.split(X, y)):
+        for k, (tr, va) in enumerate(splits):
             if args.eval_folds and k >= args.eval_folds:
                 break
             done[va] = True
@@ -140,7 +151,7 @@ def main():
         row = dict(name=name, description=desc, cv_f1=round(f1_raw, 4),
                    cv_f1_std=round(float(np.std(fold_f1)), 4), cv_f1_tuned=round(f1_tuned, 4),
                    params=n_params, minutes=round((time.time() - t0) / 60, 1), seed=args.seed,
-                   rows=int(done.sum()), epochs=kw.get("epochs", 40) if fn is run_mlp else "")
+                   rows=int(done.sum()), cv=f"group{args.groups}" if args.groups else "random", epochs=kw.get("epochs", 40) if fn is run_mlp else "")
         print(row)
         with open(res_path, "a", newline="") as f:
             wr = csv.DictWriter(f, fieldnames=list(row))
