@@ -107,3 +107,5 @@ logit-mean: s_hat=0.61; s=0.6 mean 68.53 (best 68.50), RMSE к 77.25 1.38. От�
 logit-mean ансамбль: s60 68.93, +best 74.61 — хуже.
 Проба вдоль g = best - ridge (RMS 2.64): g_plus = best+0.5g, g_minus = best-0.5g.
 Страховка: все 4 predict.py проверены на переименованных копиях тестов — совпадают с лучшими LB. C: сортировка wav устойчива к нечисловым именам. Инструкция: FINAL_STEPS.md.
+Проба g=logit-ens - best (из чата): лучший бленд локально оптимален вдоль 3 направлений.
+Новая гипотеза: структура в y + потеря в logit (LightGBM custom objective) — task_d/experiments/ystruct_logitloss.py.
