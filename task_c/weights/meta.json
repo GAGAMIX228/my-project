@@ -1,0 +1,45 @@
+{
+  "seed": 185065,
+  "config": {
+    "use_wavlm": false,
+    "wavlm_layer": 6,
+    "logreg_C": 0.1,
+    "n_lgbm": 5,
+    "n_cat": 3,
+    "cat_depths": [
+      6,
+      8
+    ],
+    "cat": {
+      "iterations": 1500,
+      "learning_rate": 0.05
+    },
+    "lgbm": {
+      "n_estimators": 400,
+      "learning_rate": 0.05,
+      "num_leaves": 31,
+      "subsample": 0.8,
+      "subsample_freq": 1,
+      "colsample_bytree": 0.5,
+      "class_weight": "balanced"
+    }
+  },
+  "n_train_spec": 25380,
+  "files": {
+    "lgbm": [
+      "lgbm_0.txt",
+      "lgbm_1.txt",
+      "lgbm_2.txt",
+      "lgbm_3.txt",
+      "lgbm_4.txt"
+    ],
+    "cat": [
+      "cat_d6_0.cbm",
+      "cat_d6_1.cbm",
+      "cat_d6_2.cbm",
+      "cat_d8_0.cbm",
+      "cat_d8_1.cbm",
+      "cat_d8_2.cbm"
+    ]
+  }
+}
