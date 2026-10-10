@@ -101,6 +101,10 @@ EXPERIMENTS = {
     "catboost_d8":   (fit_catboost, True, {"depth": 8}, "CatBoost depth=8"),
     "gam":           (fit_gam, False, {}, "GAM: сплайны по признакам + логрег"),
     "gam_fe":        (fit_gam, True, {}, "GAM + сгенерированные признаки"),
+    "gam_k5":        (fit_gam, False, {"n_knots": 5}, "GAM, 5 узлов сплайна"),
+    "gam_k6":        (fit_gam, False, {"n_knots": 6}, "GAM, 6 узлов сплайна"),
+    "gam_C03":       (fit_gam, False, {"C": 0.3}, "GAM, сильнее регуляризация C=0.3"),
+    "gam_C3":        (fit_gam, False, {"C": 3.0}, "GAM, слабее регуляризация C=3"),
     "gam_k12":       (fit_gam, True, {"n_knots": 12}, "GAM, 12 узлов сплайна"),
     "catboost_bal":  (fit_catboost, True, {"auto_class_weights": "Balanced"}, "CatBoost + веса классов"),
 }
