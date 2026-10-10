@@ -10,3 +10,5 @@ task_b/oof/
 submission_seed_*.csv
 catboost_info/
 submissions_b/
+task_c/data/
+task_c/features/
