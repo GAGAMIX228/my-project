@@ -56,3 +56,10 @@ CV F1: логрег 0.940, LightGBM 0.950, CatBoost 0.953 (порог 0.475). Л
 LB (public): spec LightGBM 98.46 (финал, seed 185065) | WavLM-L6 логрег 45.86 | смесь 79.88.
 Вывод: признаки WavLM не переносятся на синтезаторы теста, хотя на CV хороши (0.976).
 Домены для HF добавлены (huggingface.co, *.huggingface.co, *.hf.co).
+
+## Задача D (task_d/) — регрессия protection_score, RMSE
+Данные: gdown --folder 1eVLV_QfeeTwsAq0B1mfCTXKFLf78vsvx (D_sber.zip) -> task_d/data/hard_{train,test}.csv.
+CV RMSE: LGBM 10.58, LGBM leaves=8 +FE 10.44, ridge на logit(y) 10.25, GAM на logit 10.32.
+LB: базовый LGBM (seed 508799) = 71.64 — формула баллов не 100*(1-RMSE/7) по нашей шкале.
+Проба «константа = среднее train» отправлена для восстановления формулы баллов.
+Текущая сумма: A 77.49 + B 96.18 + C 98.46 + D 71.64 = 343.77.
