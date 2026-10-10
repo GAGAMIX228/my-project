@@ -11,6 +11,7 @@ import sys
 
 import joblib
 import lightgbm as lgb
+from catboost import CatBoostClassifier
 import numpy as np
 import pandas as pd
 import torch
@@ -35,7 +36,17 @@ def main():
     ids = [os.path.basename(p) for p in paths]
 
     Xs = np.stack([extract(p) for p in paths])
-    score = lgb.Booster(model_file=os.path.join(args.weights, "spec_lgbm.txt")).predict(Xs)
+    files = meta["files"]
+    p_lgbm = np.mean([lgb.Booster(model_file=os.path.join(args.weights, f)).predict(Xs) for f in files["lgbm"]], 0)
+    groups = [rankdata(p_lgbm) / len(ids)]
+    for depth in meta["config"]["cat_depths"]:
+        ps = []
+        for f in [f for f in files["cat"] if f.startswith(f"cat_d{depth}_")]:
+            m = CatBoostClassifier()
+            m.load_model(os.path.join(args.weights, f))
+            ps.append(m.predict_proba(Xs)[:, 1])
+        groups.append(rankdata(np.mean(ps, 0)) / len(ids))
+    score = np.mean(groups, 0)  # среднее рангов групп, в (0, 1]
     if meta["config"].get("use_wavlm"):
         torch.set_num_threads(os.cpu_count())
         wavlm = AutoModel.from_pretrained(MODEL).eval()
