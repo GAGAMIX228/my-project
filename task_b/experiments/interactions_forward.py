@@ -21,10 +21,16 @@ X0["brand_apple"] = (X0.smartphone_brand == "Apple").astype(int)
 X0["brand_premium"] = X0.smartphone_brand.isin(["Apple", "Samsung", "Google"]).astype(int)
 X0["region_capital"] = X0.region.isin(["Москва", "Санкт-Петербург"]).astype(int)
 X0["edu_high"] = X0.education.isin(["master", "phd"]).astype(int)
-FEATS = ["smartphone_price", "monthly_income", "number_of_card_transactions_month", "average_monthly_balance",
+FEATS_FULL = ["smartphone_price", "monthly_income", "number_of_card_transactions_month", "average_monthly_balance",
          "credit_score", "online_payments_share", "smartphone_age_months", "previous_campaign_response",
          "previous_insurance", "number_of_bank_products", "marketing_contacts_last_year", "mobile_app_usage",
          "age", "owns_car", "brand_apple", "brand_premium", "region_capital", "edu_high"]
+
+# сокращённый список (быстрее): самые сильные признаки + флаги бренда/региона
+FEATS = ["smartphone_price", "monthly_income", "number_of_card_transactions_month", "average_monthly_balance",
+         "credit_score", "online_payments_share", "smartphone_age_months", "previous_campaign_response",
+         "previous_insurance", "brand_apple", "region_capital"]
+FEATS = FEATS if "--full" not in sys.argv else FEATS_FULL
 
 
 def add(X, pairs):
