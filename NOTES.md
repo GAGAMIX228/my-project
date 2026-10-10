@@ -97,3 +97,4 @@ C final воспроизведён из train.py/predict.py (seed 185065): от�
 B forward-отбор остановлен по просьбе (старт 4 пары: 0.9602).
 D: гипотеза латентного шума (y_obs=100*sigmoid(z+eps)) => нужна МЕДИАНА, а не среднее. task_d/experiments/median.py.
 Диагностика ПОДТВЕРЖДАЕТ латентный шум: в logit-шкале std остатка ~0.6 на всех уровнях, skew~0; в y-шкале skew меняет знак около 50; медиана остатка +1.3..+2.7 при 60-93 (прогноз занижен).
+QuantReg logit: a=0.068, b=0.980. Отправлены cal_qr_best, median_models, median_models_plus_calbest.
