@@ -20,7 +20,7 @@ from transformers import AutoModel
 
 HERE = os.path.dirname(os.path.abspath(__file__))
 sys.path.insert(0, HERE)
-from features import SR, load_audio, read_targets  # noqa: E402
+from features import SR, load_audio, read_targets, wav_sort_key  # noqa: E402
 
 MODEL = "microsoft/wavlm-base-plus"
 MAX_SEC = 4.0
@@ -63,7 +63,7 @@ def main():
             paths = [os.path.join(args.data_dir, "train", "flac", f"{i}.flac") for i in ids]
         else:
             paths = sorted(glob.glob(os.path.join(args.data_dir, split, "*.wav")),
-                           key=lambda p: int(os.path.splitext(os.path.basename(p))[0]))
+                           key=wav_sort_key)
             ids = [os.path.basename(p) for p in paths]
         if args.limit:
             ids, paths = ids[:args.limit], paths[:args.limit]

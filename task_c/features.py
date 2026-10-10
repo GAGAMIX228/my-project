@@ -25,6 +25,12 @@ HERE = os.path.dirname(os.path.abspath(__file__))
 SR = 16000
 
 
+def wav_sort_key(path):
+    """Числовые имена (0.wav, 1.wav, …) — по номеру; любые другие — по алфавиту после числовых."""
+    stem = os.path.splitext(os.path.basename(path))[0]
+    return (0, int(stem), "") if stem.isdigit() else (1, 0, stem)
+
+
 def load_audio(path, trim=True):
     x, sr = sf.read(path, dtype="float32")
     if x.ndim > 1:
@@ -92,7 +98,7 @@ def main():
             paths = [os.path.join(args.data_dir, "train", "flac", f"{i}.flac") for i in ids]
         else:
             paths = sorted(glob.glob(os.path.join(args.data_dir, split, "*.wav")),
-                           key=lambda p: int(os.path.splitext(os.path.basename(p))[0]))
+                           key=wav_sort_key)
             ids = [os.path.basename(p) for p in paths]
         with Pool(args.workers) as pool:
             feats = pool.map(extract, paths, chunksize=64)

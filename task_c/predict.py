@@ -20,7 +20,7 @@ from transformers import AutoModel
 
 HERE = os.path.dirname(os.path.abspath(__file__))
 sys.path.insert(0, HERE)
-from features import extract, load_audio  # noqa: E402
+from features import extract, load_audio, wav_sort_key  # noqa: E402
 from ssl_features import MODEL, embed  # noqa: E402
 
 
@@ -32,7 +32,7 @@ def main():
     args = ap.parse_args()
     meta = json.load(open(os.path.join(args.weights, "meta.json")))
     paths = sorted(glob.glob(os.path.join(args.test_dir, "*.wav")),
-                   key=lambda p: int(os.path.splitext(os.path.basename(p))[0]))
+                   key=wav_sort_key)
     ids = [os.path.basename(p) for p in paths]
 
     Xs = np.stack([extract(p) for p in paths])
